@@ -1,0 +1,42 @@
+.vscode/
+
+# Ignore IP (large files)
+ip/
+
+# Ignore some S7 files
+**/release*
+**/release**
+**/elf2hex*
+**/elf2hex**
+**/bsp/*
+**/freedom-metal/*
+
+*.DS_Store
+*.project
+*.cproject
+
+# Ignore Everything in a run directory
+**/run*/*
+
+# Xcelium simulation files
+**/xcelium.d/*
+*.diag
+*.bpad
+*.bin
+*.vcd
+*.fst
+log/
+results.xml
+
+# Ignore python cache
+**/__pycache__/
+**/*.pyc
+
+# Ignore lock files
+**/*.ods*
+**/.lock**
+
+# Ignore all .log files
+**/*.log**
+
+**/*.nfs*

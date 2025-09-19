@@ -1,0 +1,14 @@
+#!/bin/bash
+
+# Skip os check for cadence tools 
+export CDS_SKIP_OS_CHECK_ON_STARTUP=1 
+
+# Lic Setup
+export LM_LICENSE_FILE=27000@sigma.analog.jhu.edu #in lab
+
+# Cadence Tools
+INSTALL_DIR=/cadence/installs
+export PATH=${INSTALL_DIR}/XCELIUMMAIN_25.03.002/tools/bin:${PATH}
+export PATH=${INSTALL_DIR}/XCELIUMMAIN_25.03.002/tools/bin/64bit/:${PATH}
+
+export PATH=${INSTALL_DIR}/DDI251_0/bin:${PATH}
