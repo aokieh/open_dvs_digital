@@ -6,8 +6,9 @@ module digital_top (
     // SPI Interface
     input  logic CS_N,
     input  logic SCK,
-    input  logic COPI,
-    output logic CIPO
+    input  logic [3:0] COPI,
+    output logic [3:0] CIPO,
+    output logic [23:0] biases [0:(`NUM_BIASES-1)]
 );
 
 
@@ -32,14 +33,17 @@ module digital_top (
 
     //ADDITIONAL SIGNALS
     logic [23:0] bias [`NUM_BIASES];
-    logic [9:0] event_rate = 10'h3FF; //gets written to mem[27]
+    logic [9:0] event_rate = 10'h3FF; //TODO (remove) gets written to mem[27]
 
     // hard wiring the added memory addresses
     // assign bias[0] = 24'hAAA;
     // assign bias[1] = 24'hBBB;
     // assign bias[2] = 24'hCCC;
     // assign bias[3] = 24'hDDD;
-
+    assign biases [3] = bias[3];
+    assign biases [2] = bias[2];
+    assign biases [1] = bias[1];
+    assign biases [0] = bias[0];
     //---------------------------------------------------
     // SPI Peripheral
     //---------------------------------------------------

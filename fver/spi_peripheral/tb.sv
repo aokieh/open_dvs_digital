@@ -13,8 +13,8 @@ module tb ();
     // SPI Interface
     logic CS_N;
     logic SCK;
-    logic COPI;
-    logic CIPO;
+    logic [3:0] COPI;
+    logic [3:0] CIPO;
 
     spi_intf i_spi_intf(
         .CS_N(CS_N),
@@ -58,7 +58,7 @@ module tb ();
 
         #100ns;
 
-        spi_ctrl.trans(WRITE_BT, 3, 'h55);
+        spi_ctrl.trans(WRITE_BT, 3, 'h55); //
         #100ns;
         spi_ctrl.trans(WRITE_HW, 6, 'hAABB);
         #100ns;

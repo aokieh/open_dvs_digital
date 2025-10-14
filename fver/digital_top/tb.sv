@@ -4,7 +4,7 @@ import pkg_spi_fver::*;
 
 module tb ();
 
-    localparam CLK_P = 5ns;
+    localparam CLK_P = 100ns;
     localparam DEPTH = 8;
 
     localparam DEASSERT_THRESH = 11;
@@ -16,8 +16,8 @@ module tb ();
     // SPI Interface
     logic CS_N;
     logic SCK;
-    logic COPI;
-    logic CIPO;
+    logic [3:0] COPI;
+    logic [3:0] CIPO;
 
     spi_intf i_spi_intf(
         .CS_N,
@@ -56,20 +56,20 @@ module tb ();
         spi_ctrl.trans(READ_BT, 0, 0, 'h55);
         #100ns;
 
-        // Pulse fifo_rst_n
+        // // Pulse fifo_rst_n
         spi_ctrl.trans(WRITE_BT, 1, 1);
         #100ns;
 
-        // Set irq_deassert_thresh
+        // // Set irq_deassert_thresh
         spi_ctrl.trans(WRITE_HW, 12, DEASSERT_THRESH);
         #100ns;
 
-        // Set irq_assert_thresh
+        // // Set irq_assert_thresh
         spi_ctrl.trans(WRITE_HW, 14, ASSERT_THRESH);
         #100ns;
 
         // Set DAC configs
-        for (int i = 0; i < `NUM_DACS; i++) begin
+        for (int i = 0; i < 10; i++) begin
             spi_ctrl.trans(WRITE_HW, i*2 + 20, 'h5aa + i);
             #100ns;
         end
