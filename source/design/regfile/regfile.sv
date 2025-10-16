@@ -1,5 +1,5 @@
 
-// Memory map: read/write
+// Memory map: read/write configuration
 `define mem_map(signal, byte_addr) \
     begin \
         int __row, __lsb; \
@@ -9,7 +9,7 @@
         mem_out[__row][8*__lsb +: $bits(signal)] = signal; \
     end
 
-// Memory map: read-only
+// Memory map: read-only configuration
 `define mem_map_ro(signal, byte_addr) \
     begin \
         int __row, __lsb; \
@@ -82,7 +82,7 @@ module regfile (
         `mem_map(irq_deassert_thresh, 12)
         `mem_map(irq_assert_thresh, 14)
 
-        // DACs
+        // DACs - TODO: insert proper DAC addresses
         for (int i = 0; i < `NUM_DACS; i++) begin
             `mem_map(dac_config[i], i*2 + 20)
         end

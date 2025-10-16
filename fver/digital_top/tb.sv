@@ -51,7 +51,10 @@ module tb ();
         #(5*CLK_P);
 
         #100ns;
-
+        // The memory command is byte addressable
+        // mem_in & mem_out is 32-bit word array of 32 cells
+        // Look for valid data on wdata for write, and rdata for read
+        
         // Read Chip ID
         spi_ctrl.trans(READ_BT, 0, 0, 'h55);
         #100ns;

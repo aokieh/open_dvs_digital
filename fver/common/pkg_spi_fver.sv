@@ -44,11 +44,7 @@ package pkg_spi_fver;
 			);
 
 			// logic [ 7:0] op = int'(op_t); 
-			//x is don't care, d is real data -- replacing tx_bits
-			// logic [3:0] ad_1 = addr[7:4]; 	//channel 3 - [xxxd]
-			logic [7:0] ad_0 = addr;	//channel 2 - [xxxd_dddd]
-
-			// logic [3:0] op_1 = int'(0);		//channel 1 - [xxxx]
+			logic [7:0] ad_0 = addr;		//channel 1 - [xxxd_dddd]
 			logic [7:0] op_0 = int'(op_t); 	//channel 0 - [xxxx_xddd]
 			
 			logic [7:0] da_3 = data[31:24];
@@ -65,33 +61,14 @@ package pkg_spi_fver;
 
 			// int total_num_bits = 8*$pow(2, op_0[1:0]);
 			int total_num_bits = 8 << op_0[1:0];
-			// int  num_cycles = total_num_bits/4;
-			// tx_bits = {op, addr};
 			int send_op_addr_size = 8;
 			int send_data_size = 8;
 
 			spi.CS_N = 0;
 			#CLK_P_SPI;
 
-			// Send Op and Addr
-			// for (int i = 0; i < 4; i++) begin
-			// 	spi.COPI = tx_bits[15-i];
-			// 	#CLK_P_SPI;
-			// 	spi.SCK = 1;
-			// 	#CLK_P_SPI;
-			// 	spi.SCK = 0;
-			// end
-
-			//num of total bits - 1 = 3 
-			// logic [1:0] send_op_addr_size = 2'd3;
-			
-			// int OP_ADDR_WIDTH = send_op_addr_size - 1;
-			
 			// Send Op and Addr -- 8 cycles
 			for (int i = 0; i < send_op_addr_size; i++) begin
-				// spi.COPI[3] = ad_1[send_op_addr_size-1-i];
-				// spi.COPI[2] = ad_0[send_op_addr_size-1-i];
-				// spi.COPI[1] = op_1[send_op_addr_size-1-i];
 				spi.COPI[1] = ad_0[send_op_addr_size-1-i];
 				spi.COPI[0] = op_0[send_op_addr_size-1-i];
 				#CLK_P_SPI;
@@ -99,16 +76,6 @@ package pkg_spi_fver;
 				#CLK_P_SPI;
 				spi.SCK = 0;
 			end
-
-			// Data
-			// for (int i = 0; i < num_bits; i++) begin
-			// 	spi.COPI = data[num_bits-1-i];
-			// 	#CLK_P_SPI;
-			// 	spi.SCK = 1;
-			// 	rx_bits = {rx_bits[31:0], spi.CIPO};
-			// 	#CLK_P_SPI;
-			// 	spi.SCK = 0;
-			// end
 
 			for (int i = 0; i < send_data_size; i++) begin
 				spi.COPI[3] = da_3[send_data_size-1-i];
@@ -118,21 +85,24 @@ package pkg_spi_fver;
 				#CLK_P_SPI;
 				spi.SCK = 1;
 				// rx_bits = {rx_bits[31:0], spi.CIPO};
-				rx_bits = {
-					{rx_3[6:0],spi.COPI[3]},
-					{rx_2[6:0],spi.COPI[2]},
-					{rx_1[6:0],spi.COPI[1]},
-					{rx_0[6:0],spi.COPI[0]} 
-				};
 				#CLK_P_SPI;
 				spi.SCK = 0;
+				rx_bits = {
+					{da_3[6:0],spi.COPI[3]},
+					{da_2[6:0],spi.COPI[2]},
+					{da_1[6:0],spi.COPI[1]},
+					{da_0[6:0],spi.COPI[0]} 
+				};
+
 			end
 
 			#CLK_P_SPI;
 			spi.CS_N = 1;
-
 			#CLK_P_SPI;
 
+			//TODO: assert data is ready at spi.WE == 1 state
+			// $display ("[ERROR!] ADDR %d, RX Data=%h, Expected Data=%h", addr, rx_bits, expected_data);
+			
 			// assert (rx_bits == expected_data)
 			// 	else begin
 			// 		$display ("[ERROR!] ADDR %d, RX Data=%h, Expected Data=%h", 

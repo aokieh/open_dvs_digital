@@ -2,13 +2,18 @@
 module digital_top (
     input  logic clk,
     input  logic rst_n,
-
+    //Added for ASIC tools
+    input  logic vccd1,  // OpenLane Power  - comment out if needed
+    input  logic vssd1,  // OpenLane Ground - comment out if needed
     // SPI Interface
     input  logic CS_N,
     input  logic SCK,
     input  logic [3:0] COPI,
     output logic [3:0] CIPO,
-    output logic [23:0] biases [0:(`NUM_BIASES-1)]
+    output logic [23:0] bias_0,
+    output logic [23:0] bias_1,
+    output logic [23:0] bias_2,
+    output logic [23:0] bias_3
 );
 
 
@@ -19,19 +24,19 @@ module digital_top (
     logic [  `RF_MASK-1:0] wmask;
     logic [ `RF_WIDTH-1:0] rdata;
 
-    // FIFO
+    // FIFO registers
     logic                    fifo_rst_n;
     logic                    fifo_rd_en;
     logic [`FIFO_AWIDTH-1:0] fifo_numel = 10'h3FF;//TODO remove assignment
 
-    // IRQ
+    // IRQ registers
     logic [`FIFO_AWIDTH-1:0] irq_deassert_thresh;
     logic [`FIFO_AWIDTH-1:0] irq_assert_thresh;
 
-    // DAC
+    // DAC registers
     logic [`DAC_WIDTH-1:0] dac_config [`NUM_DACS];
 
-    //ADDITIONAL SIGNALS
+    //ADDITIONAL SIGNALS - test registers to test ports
     logic [23:0] bias [`NUM_BIASES];
     logic [9:0] event_rate = 10'h3FF; //TODO (remove) gets written to mem[27]
 
@@ -40,10 +45,10 @@ module digital_top (
     // assign bias[1] = 24'hBBB;
     // assign bias[2] = 24'hCCC;
     // assign bias[3] = 24'hDDD;
-    assign biases [3] = bias[3];
-    assign biases [2] = bias[2];
-    assign biases [1] = bias[1];
-    assign biases [0] = bias[0];
+    assign bias_3 = bias[3];
+    assign bias_2 = bias[2];
+    assign bias_1 = bias[1];
+    assign bias_0 = bias[0];
     //---------------------------------------------------
     // SPI Peripheral
     //---------------------------------------------------
@@ -87,7 +92,7 @@ module digital_top (
         // DAC
         .dac_config,
 
-        //ADDED PORTS
+        //ADDED PORTS -- testing top level IO. remove later
         .bias,              //added code    
         .event_rate         //added code
     );
