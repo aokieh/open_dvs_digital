@@ -9,6 +9,7 @@ module spi_peripheral (
     // Memory Interface (SPI <-> Mem)
     output logic [`RF_AWIDTH-1:0] addr,
     output logic                  we,
+    output logic                  we_out, //TODO: remove top-level later
     output logic [ `RF_WIDTH-1:0] wdata,
     output logic [  `RF_MASK-1:0] wmask,
     input  logic [ `RF_WIDTH-1:0] rdata
@@ -59,23 +60,23 @@ module spi_peripheral (
 
     // Assert flags for opcode, address, and rx_data
     always_comb begin
-        en_rx_opcode      = cycle_count inside {[0:7]};  // opcode is across CH0
-        en_rx_addr        = cycle_count inside {[0:7]};  // addr is across CH1
+        en_rx_opcode      = (cycle_count <= 7);  // opcode is across CH0
+        en_rx_addr        = (cycle_count <= 7);  // addr is across CH1
         // Decode rx_data flag from opcode
-        en_rx_rdata       = cycle_count inside {[8:14]};
+        en_rx_rdata       = (cycle_count >= 8 && cycle_count <= 14);
         opcode_valid = opcode_0[2:0];
-        mem_write_next_re = determine_write_next_re(opcode_valid, cycle_count);
+        mem_write_next_re = determine_write_next_re(opcode_valid[2], cycle_count);
         addr_valid   = {addr_0[4:0]};
     end
 
     //proper address decoding
-    function automatic logic determine_write_next_re(input logic [2:0] opcode_valid, input logic [5:0] cycle_count);
-        if (opcode_valid[2] == 0)
+    function automatic logic determine_write_next_re(input logic _opcode_msb, input logic [3:0] _cycle_count);
+        if (_opcode_msb == 0)
             // Return 0 for read ops and opcode/addr transmission
-            return 1'b0; //not write mode
+            determine_write_next_re = 1'b0; //not write mode
         else
-            return (cycle_count == 4'd15);
-    endfunction : determine_write_next_re
+            determine_write_next_re = (_cycle_count == 4'd15);
+    endfunction                             //TODO changed for yosys from SV->V : determine_write_next_re
 
 
     //---------------------------------------------------
@@ -94,10 +95,10 @@ module spi_peripheral (
                 addr_0 <= {addr_0[6:0], COPI[1]};
                 end 
                 if (en_rx_rdata) begin  // Sample rx_data
-                    rx_data_3 <= {rx_data_3[6:0], COPI[3]};
-                    rx_data_2 <= {rx_data_2[6:0], COPI[2]};
-                    rx_data_1 <= {rx_data_1[6:0], COPI[1]};
-                    rx_data_0 <= {rx_data_0[6:0], COPI[0]};
+                    rx_data_3 <= {rx_data_3[5:0], COPI[3]};
+                    rx_data_2 <= {rx_data_2[5:0], COPI[2]};
+                    rx_data_1 <= {rx_data_1[5:0], COPI[1]};
+                    rx_data_0 <= {rx_data_0[5:0], COPI[0]};
                 end
         end
     end
@@ -132,12 +133,16 @@ module spi_peripheral (
         if (CS_N) begin
             // Don't write to mem when chip select is released
             we <= '0;
+            we_out <='0;
 
         end else begin
-            if (mem_write_next_re)
+            if (mem_write_next_re) begin
                 we <= '1;
-            else
+                we_out <='1;
+            end else begin
                 we <= '0;
+                we_out <='0;
+            end
         end
     end
 
@@ -168,9 +173,10 @@ module spi_peripheral (
     //Decode data to be written to memory
     always_comb begin
         // case (spi_opcode[2:0])
+        wdata = 32'd0;
         case (opcode_valid[2:0])
             //write byte 4 times over
-            3'b100  : wdata = {(4){{rx_data_0[7:0]}}};
+            3'b100  : wdata = {(4){{rx_data_0[6:0], COPI[0]}}};
             
             //write half-word two times over
             3'b101  : wdata = {(2){
@@ -197,7 +203,7 @@ module spi_peripheral (
             3'b101  : wmask[(addr_0[1:0])+:2] = 2'b11;  //half-word write
             3'b110  : wmask[(addr_0[1:0])+:4] = 4'hf;   //word      write
             // 3'b111  : wmask[(spi_addr[2:0])+:8] = 8'hff;
-            default : wmask 					=  '0;
+            default : wmask 				  =  '0;
         endcase
     end
 

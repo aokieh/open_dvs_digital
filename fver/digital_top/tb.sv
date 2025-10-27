@@ -19,6 +19,32 @@ module tb ();
     logic [3:0] COPI;
     logic [3:0] CIPO;
 
+    // Regfile interface
+    logic [23:0] bias_0;
+    logic [23:0] bias_1;
+    logic [23:0] bias_2;
+    logic [23:0] bias_3;
+    
+    // logic we_out;
+
+    // Added DAC outputs
+    logic [`DAC_WIDTH-1:0] dac_config_0;
+    logic [`DAC_WIDTH-1:0] dac_config_1;
+    logic [`DAC_WIDTH-1:0] dac_config_2;
+    logic [`DAC_WIDTH-1:0] dac_config_3;
+    logic [`DAC_WIDTH-1:0] dac_config_4;
+    logic [`DAC_WIDTH-1:0] dac_config_5;
+    logic [`DAC_WIDTH-1:0] dac_config_6;
+    logic [`DAC_WIDTH-1:0] dac_config_7;
+
+    // TODO: removable signals that we aren't using (at the moment)
+    logic                        we_out;
+    logic [`FIFO_AWIDTH-1:0]     irq_assert_thresh;
+    logic [`FIFO_AWIDTH-1:0]     irq_deassert_thresh;
+    logic [`FIFO_AWIDTH-1:0]     fifo_numel;
+    logic                        fifo_rd_en;
+    logic                        fifo_rst_n;
+
     spi_intf i_spi_intf(
         .CS_N,
         .SCK ,
@@ -38,7 +64,31 @@ module tb ();
         .CS_N,
         .SCK,
         .COPI,
-        .CIPO
+        .CIPO,
+
+        //Regfile interface
+        .bias_0,
+        .bias_1,
+        .bias_2,
+        .bias_3,
+
+        .we_out,
+
+        .dac_config_0,
+        .dac_config_1,
+        .dac_config_2,
+        .dac_config_3,
+
+        .dac_config_4,
+        .dac_config_5,
+        .dac_config_6,
+        .dac_config_7,
+
+        .irq_assert_thresh,
+        .irq_deassert_thresh,
+        .fifo_numel,
+        .fifo_rd_en,
+        .fifo_rst_n
     );
 
 
@@ -70,7 +120,8 @@ module tb ();
         // // Set irq_assert_thresh
         spi_ctrl.trans(WRITE_HW, 14, ASSERT_THRESH);
         #100ns;
-
+        //wait for posedge(we_out) assert (wdata == ASSERT_THRESH)
+        
         // Set DAC configs
         for (int i = 0; i < 10; i++) begin
             spi_ctrl.trans(WRITE_HW, i*2 + 20, 'h5aa + i);
