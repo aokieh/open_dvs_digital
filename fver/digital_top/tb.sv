@@ -45,6 +45,19 @@ module tb ();
     logic                        fifo_rd_en;
     logic                        fifo_rst_n;
 
+    supply1 VDD; // Ideal 1 (Power Source)
+    supply0 VSS; // Ideal 0 (Ground Source)
+
+    wire vccd1; // Core Power Net (VCC)
+    wire vssd1; // Core Ground Net (VSS)
+    // wire VPB;   // P-Well bias (normally tied to VDD) - Required by Sky130
+    // wire VNB;   // N-Well bias (normally tied to VSS) - Required by Sky130    
+
+    assign vccd1 = VDD; // Drive core VCC from ideal VDD supply
+    assign vssd1 = VSS; // Drive core VSS from ideal VSS supply
+    // assign VPB   = VDD; // Tie P-Well bias (VPB) to VDD
+    // assign VNB   = VSS; // Tie N-Well bias (VNB) to VSS
+
     spi_intf i_spi_intf(
         .CS_N,
         .SCK ,
@@ -59,6 +72,10 @@ module tb ();
     digital_top i_digital_top (
         .clk,
         .rst_n,
+
+        //Power Ports
+        .vccd1,
+        .vssd1,
 
         // SPI Interface
         .CS_N,
