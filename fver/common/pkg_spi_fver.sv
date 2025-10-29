@@ -23,7 +23,8 @@ package pkg_spi_fver;
 	class class_spi_ctrl;
 		virtual spi_intf spi;
 
-		parameter CLK_P_SPI = 100ns;
+		parameter CLK_P_SPI = 25ns;
+		// parameter CLK_P_SPI = 100ns;
 
 		function new(virtual spi_intf intf);
 			spi = intf;

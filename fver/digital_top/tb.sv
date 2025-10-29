@@ -4,7 +4,8 @@ import pkg_spi_fver::*;
 
 module tb ();
 
-    localparam CLK_P = 100ns;
+    localparam CLK_P = 25ns;
+    // localparam CLK_P = 100ns;
     localparam DEPTH = 8;
 
     localparam DEASSERT_THRESH = 11;

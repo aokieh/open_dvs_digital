@@ -3,4 +3,5 @@
 /LinuxRAID/home/aokieh1/projects/digital_top_hardened_macro/openlane/digital_top/runs/25_10_24_22_02/final/pnl/digital_top.pnl.v
 ../../../source/design/common/defines.sv
 ../../common/pkg_spi_fver.sv
-../tb.sv
+../self_check_tb.sv
+# ../tb.sv

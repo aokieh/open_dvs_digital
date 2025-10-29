@@ -21,4 +21,6 @@
 
 `define NUM_DACS  8
 
+`define BIAS_WIDTH 24
+
 `define NUM_BIASES  4
