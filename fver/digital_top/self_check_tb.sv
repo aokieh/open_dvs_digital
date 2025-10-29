@@ -135,7 +135,7 @@ module tb ();
             #CLK_P;
         end
     endtask
-    // Can create task read_and_check, but is strongly test dependent
+    // TODO: create task read_and_check, but is strongly test dependent
 
     // --------------------- Test Sequence ------------------------------
     initial begin
