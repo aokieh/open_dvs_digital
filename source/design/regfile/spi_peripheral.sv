@@ -158,8 +158,10 @@ module spi_peripheral (
     always_comb begin
         spi_tx_data = 32'd0;
         case (opcode_valid[2:0])
-            3'b000  : spi_tx_data[31-: 8] = rdata[8*(addr_valid[1:0])+: 8];
-            3'b001  : spi_tx_data[31-:16] = rdata[8*(addr_valid[1:0])+:16];
+            // 3'b000  : spi_tx_data[31-: 8] = rdata[8*(addr_valid[1:0])+: 8];
+            // 3'b001  : spi_tx_data[31-:16] = rdata[8*(addr_valid[1:0])+:16];
+            3'b000  : spi_tx_data[0+: 8] = rdata[8*(addr_valid[1:0])+: 8];
+            3'b001  : spi_tx_data[0+:16] = rdata[8*(addr_valid[1:0])+:16];
             3'b010  : spi_tx_data 		  = rdata;
             default : spi_tx_data		  = 32'd0;
         endcase

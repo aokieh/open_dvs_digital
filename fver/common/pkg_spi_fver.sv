@@ -23,7 +23,7 @@ package pkg_spi_fver;
 	class class_spi_ctrl;
 		virtual spi_intf spi;
 
-		parameter CLK_P_SPI = 25ns;
+		parameter CLK_P_SPI = 12.5; //25ns clock period
 		// parameter CLK_P_SPI = 100ns;
 
 		function new(virtual spi_intf intf);
@@ -84,31 +84,41 @@ package pkg_spi_fver;
 				spi.COPI[1] = da_1[send_data_size-1-i];
 				spi.COPI[0] = da_0[send_data_size-1-i];
 				#CLK_P_SPI;
-				spi.SCK = 1;
+				spi.SCK = 1; //rising edge send in
 				// rx_bits = {rx_bits[31:0], spi.CIPO};
+				rx_3 = {rx_3[6:0],spi.CIPO[3]};
+				rx_2 = {rx_2[6:0],spi.CIPO[2]};
+				rx_1 = {rx_1[6:0],spi.CIPO[1]};
+				rx_0 = {rx_0[6:0],spi.CIPO[0]};
+				// rx_bits = { //falling edge send out
+				// 	{rx_3[6:0],spi.CIPO[3]},
+				// 	{rx_2[6:0],spi.CIPO[2]},
+				// 	{rx_1[6:0],spi.CIPO[1]},
+				// 	{rx_0[6:0],spi.CIPO[0]} 
+				// };
 				#CLK_P_SPI;
 				spi.SCK = 0;
-				rx_bits = {
-					{da_3[6:0],spi.COPI[3]},
-					{da_2[6:0],spi.COPI[2]},
-					{da_1[6:0],spi.COPI[1]},
-					{da_0[6:0],spi.COPI[0]} 
-				};
-
 			end
+
+			rx_bits = {rx_3, rx_2, rx_1, rx_0};
 
 			#CLK_P_SPI;
 			spi.CS_N = 1;
 			#CLK_P_SPI;
-
+			$display ("RX Data=%h  , Addr=%d", rx_bits, ad_0);
+			$display ("     Da3=%h", rx_3);
+			$display ("     Da2=%h", rx_2);
+			$display ("     Da1=%h", rx_1);
+			$display ("     Da0=%h", rx_0);
 			//TODO: assert data is ready at spi.WE == 1 state
 			// $display ("[ERROR!] ADDR %d, RX Data=%h, Expected Data=%h", addr, rx_bits, expected_data);
 			
-			// assert (rx_bits == expected_data)
-			// 	else begin
-			// 		$display ("[ERROR!] ADDR %d, RX Data=%h, Expected Data=%h", 
-			// 		addr, rx_bits, expected_data);
-			// 	end
+			if (rx_bits != expected_data)
+				 begin
+					$display ("[ERROR!] ADDR %d, RX Data=%h, Expected Data=%h", 
+					addr, rx_bits, expected_data);
+					$stop;
+				end
 		endtask : trans
 
 	endclass : class_spi_ctrl

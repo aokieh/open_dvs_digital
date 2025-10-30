@@ -43,11 +43,15 @@ module tb ();
     assign vssd1 = VSS;
 
     // Registers for error checking
-    logic [11:0] dac_write_data     [0:7];
-    logic [11:0] dac_read_data      [0:7];
+    logic [11:0] dac_write_data     [7:0];
+    logic [11:0] dac_read_data      [7:0];
 
-    logic [23:0] bias_write_data    [0:3];
-    logic [23:0] bias_read_data     [0:3];
+    logic [23:0] bias_write_data    [3:0];
+    logic [23:0] bias_read_data     [3:0];
+
+    // Example on assigning random data to registers
+    logic [11:0] irq_deassert_write_val = $random & 10'h3FF;
+    logic [11:0] irq_assert_write_val   = $random & 10'h3FF;
 
     spi_intf i_spi_intf(
         .CS_N,
@@ -96,17 +100,43 @@ module tb ();
         #CLK_P;
     endtask
 
-    task automatic set_irq(input logic [11:0] deassert_val, input logic [11:0] assert_val);
-        spi_ctrl.trans(WRITE_HW, 12, deassert_val);
-        #CLK_P;
-        spi_ctrl.trans(WRITE_HW, 14, assert_val);
-        #CLK_P;
+    task automatic set_irq(input logic [11:0] deassert_val, input logic [11:0] assert_val, input logic mode_read);
+            spi_ctrl.trans(WRITE_HW, 12, deassert_val);
+            #CLK_P;
+            spi_ctrl.trans(WRITE_HW, 14, assert_val);
+            #CLK_P;
+        if(mode_read) begin
+            spi_ctrl.trans(READ_HW, 12, 0, deassert_val);
+            #CLK_P;
+            spi_ctrl.trans(READ_HW, 14, 0, assert_val);
+            #CLK_P;
+        end 
     endtask
 
-    task automatic write_dacs(input logic [11:0] val);
+    task automatic write_dacs(input logic [11:0] val, input logic mode_read);
         for (int i = 0; i < `NUM_DACS; i++) begin
             spi_ctrl.trans(WRITE_HW, i*2 + 20, val);
             dac_write_data[i] = val;
+            #CLK_P;
+        end
+        if (mode_read) begin
+            for (int i = 0; i < `NUM_DACS; i++) begin
+                spi_ctrl.trans(READ_HW, i*2 + 20, 0, val);
+                // dac_write_data[i] = val;
+                #CLK_P;
+            end
+        end
+    endtask
+
+    task automatic read_dacs(input logic [11:0] val);
+        for (int i = 0; i < `NUM_DACS; i++) begin
+            spi_ctrl.trans(WRITE_HW, i*2 + 20, val+i);
+            dac_write_data[i] = val;
+            #CLK_P;
+        end
+        
+        for (int i = 0; i < `NUM_DACS; i++) begin
+            spi_ctrl.trans(READ_HW, i*2 + 20, 0, val+i);
             #CLK_P;
         end
     endtask
@@ -119,7 +149,7 @@ module tb ();
         end
     endtask
 
-    task automatic write_biases(input logic [3:0] start_val, input logic is_uniform);
+    task automatic write_biases(input logic [3:0] start_val, input logic is_uniform, input logic mode_read);
         logic [3:0] digit;
         logic [23:0] bias_val;
         for (int i = 0; i < `NUM_BIASES; i++) begin
@@ -134,11 +164,53 @@ module tb ();
             $display("Bias[%0d] write = %06h", i, bias_val);
             #CLK_P;
         end
+
+        for (int i = 0; i < `NUM_BIASES; i++) begin
+            if(mode_read) begin
+                if (is_uniform)
+                    digit = start_val;
+                else
+                    digit = (start_val + i) & 4'hF;
+                bias_val = {6{digit}};
+                spi_ctrl.trans(READ_WD, 112 + i*4, 0, bias_val);
+                bias_write_data[i] = bias_val;
+                $display("Bias[%0d] write = %06h", i, bias_val);
+                #CLK_P;
+            end
+        end
     endtask
-    // TODO: create task read_and_check, but is strongly test dependent
 
     // --------------------- Test Sequence ------------------------------
     initial begin
+        //local sdf folder
+        
+                // For corner: max_ff_n40C_1v95
+        $sdf_annotate("/home/aokieh1/projects/digital_top_hardened_macro/openlane/digital_top/runs/25_10_24_22_02/final/sdf/max_ff_n40C_1v95/digital_top__max_ff_n40C_1v95.sdf", i_digital_top);
+        
+                // For corner: max_ss_100C_1v60
+        // $sdf_annotate("/home/aokieh1/projects/digital_top_hardened_macro/openlane/digital_top/runs/25_10_24_22_02/final/sdf/max_ss_100C_1v60/digital_top__max_ss_100C_1v60.sdf", i_digital_top);
+        
+                // For corner: max_tt_025C_1v80
+        // $sdf_annotate("/home/aokieh1/projects/digital_top_hardened_macro/openlane/digital_top/runs/25_10_24_22_02/final/sdf/max_tt_025C_1v80/digital_top__max_tt_025C_1v80.sdf", i_digital_top);
+        
+                // For corner: min_ff_n40C_1v95
+        // $sdf_annotate("/home/aokieh1/projects/digital_top_hardened_macro/openlane/digital_top/runs/25_10_24_22_02/final/sdf/min_ff_n40C_1v95/digital_top__min_ff_n40C_1v95.sdf", i_digital_top);
+        
+                // For corner: min_ss_100C_1v60
+        // $sdf_annotate("/home/aokieh1/projects/digital_top_hardened_macro/openlane/digital_top/runs/25_10_24_22_02/final/sdf/min_ss_100C_1v60/digital_top__min_ss_100C_1v60.sdf", i_digital_top);
+        
+                // For corner: min_tt_025C_1v80
+        // $sdf_annotate("/home/aokieh1/projects/digital_top_hardened_macro/openlane/digital_top/runs/25_10_24_22_02/final/sdf/min_tt_025C_1v80/digital_top__min_tt_025C_1v80.sdf", i_digital_top);
+        
+                // For corner: nom_ff_n40C_1v95
+        // $sdf_annotate("/home/aokieh1/projects/digital_top_hardened_macro/openlane/digital_top/runs/25_10_24_22_02/final/sdf/nom_ff_n40C_1v95/digital_top__nom_ff_n40C_1v95.sdf", i_digital_top);
+        
+                // For corner: nom_ss_100C_1v60
+        // $sdf_annotate("/home/aokieh1/projects/digital_top_hardened_macro/openlane/digital_top/runs/25_10_24_22_02/final/sdf/nom_ss_100C_1v60/digital_top__nom_ss_100C_1v60.sdf", i_digital_top);
+        
+                // For corner: nom_tt_025C_1v80
+        // $sdf_annotate("/home/aokieh1/projects/digital_top_hardened_macro/openlane/digital_top/runs/25_10_24_22_02/final/sdf/nom_tt_025C_1v80/digital_top__nom_tt_025C_1v80.sdf", i_digital_top);
+        
         spi_ctrl.init();
 
         // Reset sequence
@@ -147,44 +219,34 @@ module tb ();
         #(10*CLK_P); rst_n = 1;
         #(5*CLK_P);
 
-        // Read Chip ID
-        spi_ctrl.trans(READ_BT, 0, 0, 'h55);
-        #CLK_P;
-
         // ---------------- Write all ones ------------------------
         pulse_fifo_rst_n('hf);
-        set_irq('hfff, 'hfff);
-        write_dacs('hfff);
-        write_biases(4'hf, 1);
+        set_irq('hfff, 'hfff, 0);
+        write_dacs('hfff, 0);
+        write_biases(4'hf, 1, 0);
         #500ns;
 
         // ---------------- Write all zeros -----------------------
         pulse_fifo_rst_n('h0);
-        set_irq('h000, 'h000);
-        write_dacs('h000);
-        write_biases(4'h0, 1);
+        set_irq('h000, 'h000, 0);
+        write_dacs('h000, 0);
+        write_biases(4'h0, 1, 0);
         #500ns;
 
         // ---------------- Write sequence data -------------------
         write_dacs_seq();
-        write_biases(4'ha, 0); // starts A, increments
+        write_biases(4'ha, 0, 0);              // starts A, increments
+        set_irq('h2AA, 'h2AA, 0);
         #500ns;
 
         // ---------------- Read and dump comparison --------------
-        spi_ctrl.trans(READ_HW, 12, 0, DEASSERT_THRESH);
-        #CLK_P;
-        spi_ctrl.trans(READ_HW, 14, 0, ASSERT_THRESH);
+        // Read Chip ID
+        spi_ctrl.trans(READ_BT, 0, 0, 'h55);
         #CLK_P;
 
-        for (int i = 0; i < `NUM_DACS; i++) begin
-            spi_ctrl.trans(READ_HW, i*2 + 20, 0, dac_write_data[i]);
-            #CLK_P;
-        end
-
-        for (int i = 0; i < `NUM_BIASES; i++) begin
-            spi_ctrl.trans(READ_WD, 112 + i*4, bias_write_data[i], bias_write_data[i]);
-            #CLK_P;
-        end
+        set_irq(irq_deassert_write_val, irq_assert_write_val, 1);
+        read_dacs('h100);   //writes consecutive data to dacs & reads
+        write_biases(4'h3, 0, 1);  //write and read beginning at 333333
 
         #300ns;
         $stop;
