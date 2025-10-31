@@ -12,14 +12,16 @@
 module sync_fifo_tb();
 
     // Parameters
-    parameter FIFO_DWIDTH = 16;
-    parameter FIFO_DEPTH  =  8;
+    // parameter FIFO_DWIDTH = 16;
+    // parameter FIFO_DEPTH  =  8;
+    parameter FIFO_DWIDTH = 64;
+    parameter FIFO_DEPTH  =  16;
 
     // Inputs
     logic clk = 0, rst_n = 0;
     logic wr_en = 0, rd_en = 0;
-    logic [FIFO_DWIDTH-1:0] data_in = 0;
-    logic [FIFO_DWIDTH-1:0] data_out;
+    logic [FIFO_DWIDTH-1:0] wdata = 0;
+    logic [FIFO_DWIDTH-1:0] rdata;
     logic [$clog2(FIFO_DEPTH):0] numel;
     logic empty, full;
 
@@ -30,11 +32,11 @@ module sync_fifo_tb();
         .rst_n,
         .wr_en,
         .rd_en,
-        .data_in,
+        .wdata,
         .empty,
         .full,
         .numel,
-        .data_out
+        .rdata
     );
 
 
@@ -134,8 +136,8 @@ module sync_fifo_tb();
             @(posedge clk);
             #0.1ns;
             wr_en = 1;
-            data_in = $urandom_range(0, (2**FIFO_DWIDTH)-1);
-            $display("i = %2d  Writing data = %h", i, data_in);
+            wdata = $urandom_range(0, (2**FIFO_DWIDTH)-1);
+            $display("i = %2d  Writing data = %h", i, wdata);
 
             @(posedge clk);
             #0.1ns;
@@ -161,7 +163,7 @@ module sync_fifo_tb();
             @(posedge clk);
             #0.1ns;
             rd_en = 1;
-            $display("i = %2d  Reading data = %h", i, data_out);
+            $display("i = %2d  Reading data = %h", i, rdata);
 
             i++;
 
