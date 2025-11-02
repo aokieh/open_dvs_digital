@@ -185,31 +185,31 @@ module tb ();
         //local sdf folder
         
                 // For corner: max_ff_n40C_1v95
-        $sdf_annotate("/home/aokieh1/projects/digital_top_hardened_macro/openlane/digital_top/runs/25_10_24_22_02/final/sdf/max_ff_n40C_1v95/digital_top__max_ff_n40C_1v95.sdf", i_digital_top);
+        $sdf_annotate("/home/aokieh1/projects/digital_top_hardened_macro/openlane/digital_top/runs/antenna_clean/final/sdf/max_ff_n40C_1v95/digital_top__max_ff_n40C_1v95.sdf", i_digital_top);
         
                 // For corner: max_ss_100C_1v60
-        // $sdf_annotate("/home/aokieh1/projects/digital_top_hardened_macro/openlane/digital_top/runs/25_10_24_22_02/final/sdf/max_ss_100C_1v60/digital_top__max_ss_100C_1v60.sdf", i_digital_top);
+        // $sdf_annotate("/home/aokieh1/projects/digital_top_hardened_macro/openlane/digital_top/runs/antenna_clean/final/sdf/max_ss_100C_1v60/digital_top__max_ss_100C_1v60.sdf", i_digital_top);
         
                 // For corner: max_tt_025C_1v80
-        // $sdf_annotate("/home/aokieh1/projects/digital_top_hardened_macro/openlane/digital_top/runs/25_10_24_22_02/final/sdf/max_tt_025C_1v80/digital_top__max_tt_025C_1v80.sdf", i_digital_top);
+        // $sdf_annotate("/home/aokieh1/projects/digital_top_hardened_macro/openlane/digital_top/runs/antenna_clean/final/sdf/max_tt_025C_1v80/digital_top__max_tt_025C_1v80.sdf", i_digital_top);
         
                 // For corner: min_ff_n40C_1v95
-        // $sdf_annotate("/home/aokieh1/projects/digital_top_hardened_macro/openlane/digital_top/runs/25_10_24_22_02/final/sdf/min_ff_n40C_1v95/digital_top__min_ff_n40C_1v95.sdf", i_digital_top);
+        // $sdf_annotate("/home/aokieh1/projects/digital_top_hardened_macro/openlane/digital_top/runs/antenna_clean/final/sdf/min_ff_n40C_1v95/digital_top__min_ff_n40C_1v95.sdf", i_digital_top);
         
                 // For corner: min_ss_100C_1v60
-        // $sdf_annotate("/home/aokieh1/projects/digital_top_hardened_macro/openlane/digital_top/runs/25_10_24_22_02/final/sdf/min_ss_100C_1v60/digital_top__min_ss_100C_1v60.sdf", i_digital_top);
+        // $sdf_annotate("/home/aokieh1/projects/digital_top_hardened_macro/openlane/digital_top/runs/antenna_clean/final/sdf/min_ss_100C_1v60/digital_top__min_ss_100C_1v60.sdf", i_digital_top);
         
                 // For corner: min_tt_025C_1v80
-        // $sdf_annotate("/home/aokieh1/projects/digital_top_hardened_macro/openlane/digital_top/runs/25_10_24_22_02/final/sdf/min_tt_025C_1v80/digital_top__min_tt_025C_1v80.sdf", i_digital_top);
+        // $sdf_annotate("/home/aokieh1/projects/digital_top_hardened_macro/openlane/digital_top/runs/antenna_clean/final/sdf/min_tt_025C_1v80/digital_top__min_tt_025C_1v80.sdf", i_digital_top);
         
                 // For corner: nom_ff_n40C_1v95
-        // $sdf_annotate("/home/aokieh1/projects/digital_top_hardened_macro/openlane/digital_top/runs/25_10_24_22_02/final/sdf/nom_ff_n40C_1v95/digital_top__nom_ff_n40C_1v95.sdf", i_digital_top);
+        // $sdf_annotate("/home/aokieh1/projects/digital_top_hardened_macro/openlane/digital_top/runs/antenna_clean/final/sdf/nom_ff_n40C_1v95/digital_top__nom_ff_n40C_1v95.sdf", i_digital_top);
         
                 // For corner: nom_ss_100C_1v60
-        // $sdf_annotate("/home/aokieh1/projects/digital_top_hardened_macro/openlane/digital_top/runs/25_10_24_22_02/final/sdf/nom_ss_100C_1v60/digital_top__nom_ss_100C_1v60.sdf", i_digital_top);
+        // $sdf_annotate("/home/aokieh1/projects/digital_top_hardened_macro/openlane/digital_top/runs/antenna_clean/final/sdf/nom_ss_100C_1v60/digital_top__nom_ss_100C_1v60.sdf", i_digital_top);
         
                 // For corner: nom_tt_025C_1v80
-        // $sdf_annotate("/home/aokieh1/projects/digital_top_hardened_macro/openlane/digital_top/runs/25_10_24_22_02/final/sdf/nom_tt_025C_1v80/digital_top__nom_tt_025C_1v80.sdf", i_digital_top);
+        // $sdf_annotate("/home/aokieh1/projects/digital_top_hardened_macro/openlane/digital_top/runs/antenna_clean/final/sdf/nom_tt_025C_1v80/digital_top__nom_tt_025C_1v80.sdf", i_digital_top);
         
         spi_ctrl.init();
 
