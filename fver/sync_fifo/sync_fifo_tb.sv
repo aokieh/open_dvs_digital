@@ -45,8 +45,37 @@ module sync_fifo_tb();
         #5 clk = ~clk;
     end
 
-
+    // --------------------- Test Sequence ------------------------------
     initial begin
+        //local sdf folder
+        
+                // For corner: max_ff_n40C_1v95
+        // $sdf_annotate("/home/aokieh1/projects/digital_top_hardened_macro/openlane/sync_fifo/final_sync_fifo_clean/sdf/max_ff_n40C_1v95/sync_fifo__max_ff_n40C_1v95.sdf", i_fifo);
+            
+                // For corner: max_ss_100C_1v60
+        // $sdf_annotate("/home/aokieh1/projects/digital_top_hardened_macro/openlane/sync_fifo/final_sync_fifo_clean/sdf/max_ss_100C_1v60/sync_fifo__max_ss_100C_1v60.sdf", i_fifo);
+            
+                // For corner: max_tt_025C_1v80
+        // $sdf_annotate("/home/aokieh1/projects/digital_top_hardened_macro/openlane/sync_fifo/final_sync_fifo_clean/sdf/max_tt_025C_1v80/sync_fifo__max_tt_025C_1v80.sdf", i_fifo);
+            
+                // For corner: min_ff_n40C_1v95
+        // $sdf_annotate("/home/aokieh1/projects/digital_top_hardened_macro/openlane/sync_fifo/final_sync_fifo_clean/sdf/min_ff_n40C_1v95/sync_fifo__min_ff_n40C_1v95.sdf", i_fifo);
+            
+                // For corner: min_ss_100C_1v60
+        // $sdf_annotate("/home/aokieh1/projects/digital_top_hardened_macro/openlane/sync_fifo/final_sync_fifo_clean/sdf/min_ss_100C_1v60/sync_fifo__min_ss_100C_1v60.sdf", i_fifo);
+            
+                // For corner: min_tt_025C_1v80
+        // $sdf_annotate("/home/aokieh1/projects/digital_top_hardened_macro/openlane/sync_fifo/final_sync_fifo_clean/sdf/min_tt_025C_1v80/sync_fifo__min_tt_025C_1v80.sdf", i_fifo);
+            
+                // For corner: nom_ff_n40C_1v95
+        // $sdf_annotate("/home/aokieh1/projects/digital_top_hardened_macro/openlane/sync_fifo/final_sync_fifo_clean/sdf/nom_ff_n40C_1v95/sync_fifo__nom_ff_n40C_1v95.sdf", i_fifo);
+            
+                // For corner: nom_ss_100C_1v60
+        // $sdf_annotate("/home/aokieh1/projects/digital_top_hardened_macro/openlane/sync_fifo/final_sync_fifo_clean/sdf/nom_ss_100C_1v60/sync_fifo__nom_ss_100C_1v60.sdf", i_fifo);
+            
+                // For corner: nom_tt_025C_1v80
+        $sdf_annotate("/home/aokieh1/projects/digital_top_hardened_macro/openlane/sync_fifo/final_sync_fifo_clean/sdf/nom_tt_025C_1v80/sync_fifo__nom_tt_025C_1v80.sdf", i_fifo);
+            
         $display("Starting FIFO testbench...");
 
         // Reset FIFO
