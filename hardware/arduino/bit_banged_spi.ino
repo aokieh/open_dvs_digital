@@ -6,7 +6,7 @@
 #define MISO_PIN 9   // Pin for SPI MISO (Master In Slave Out)
 #define SS_PIN 10    // Pin for SPI Slave Select (SS)
 #define SCK_PIN 8   // Pin for SPI Clock (SCK)
-#define NUM_BYTES 4
+#define NUM_BYTES 4  //<-- Change this to write more bytes TODO
 
 bool falling_edge_detected = false; // Flags to indicate SCK edge
 bool rising_edge_detected = false;
