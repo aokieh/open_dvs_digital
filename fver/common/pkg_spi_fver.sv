@@ -16,7 +16,7 @@ package pkg_spi_fver;
 
 	typedef enum { 
 		READ_BT, READ_HW, READ_WD, READ_DW, 
-		WRITE_BT, WRITE_HW, WRITE_WD, WRITE_DW
+		WRITE_BT, WRITE_HW, WRITE_WD, WRITE_DW //read FIFO instead of WriteDW, saves spi functionality
 	} spi_op_t;
 
 

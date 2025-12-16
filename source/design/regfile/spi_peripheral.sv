@@ -41,6 +41,7 @@ module spi_peripheral (
     logic [7:0] tx_data_0;
     
     logic [ 3:0] cycle_count;
+    logic [ 7:0] fifo_tx_cycle_count;   //TODO: check if this addition is needed
     logic        en_rx_opcode;
     logic        en_rx_addr;
     logic        en_rx_rdata;
@@ -120,6 +121,14 @@ module spi_peripheral (
                     CIPO[0] <= tx_data_0[15-(cycle_count)];
                 end else
                     CIPO[3:0] <= 4'd0;
+            end
+
+//TODO: make changes to stream out bits from FIFO through SPI here
+            if (opcode_valid == 3'b111) begin  // we need to send 8-bits, 9-times to use same architecture
+
+                // fifo_tx_cycle_count <= fifo_tx_cycle_count + 8'd1;
+            end else begin
+                // fifo_tx_cycle_count <= 8'd0;
             end
         end
     end

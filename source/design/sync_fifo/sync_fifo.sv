@@ -1,15 +1,16 @@
 //---------------------------------------------------------------------------
 // Author: Kwesi Buabeng Debrah
-// Date  : Mar 3, 2025
+// Author: Ababakar Okieh
+// Date  : Dec 15th, 2025
 //
 // Module: sync_fifo
 //
 // Description: 
-//  Behavioral FIFO model.
+//  Behavioral FIFO model for OpenDVS.
 //---------------------------------------------------------------------------
 
 
-module sync_fifo #(parameter DWIDTH=8, DEPTH=8) (
+module sync_fifo #(parameter DWIDTH=136, DEPTH=16) (
     input  logic                   clk,
     input  logic                   rst_n,
     input  logic                   wr_en,
