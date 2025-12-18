@@ -11,4 +11,6 @@ xrun -64bit \
      +nospecify \
      +nowarnNODNTW \
      -f ../scripts/xrun.f \
-     -input self_check.tcl
+     -input sync_fifo_top.tcl
+     # -input self_check.tcl
+
