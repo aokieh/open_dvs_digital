@@ -16,14 +16,14 @@ package pkg_spi_fver;
 
 	typedef enum { 
 		READ_BT, READ_HW, READ_WD, READ_DW, 
-		WRITE_BT, WRITE_HW, WRITE_WD, WRITE_DW //read FIFO instead of WriteDW, saves spi functionality
+		WRITE_BT, WRITE_HW, WRITE_WD, READ_FIFO //read FIFO instead of WriteDW, saves spi functionality
 	} spi_op_t;
 
 
 	class class_spi_ctrl;
 		virtual spi_intf spi;
 
-		parameter CLK_P_SPI = 12.5; //25ns clock period
+		parameter CLK_P_SPI = 10; //20ns clock period
 		// parameter CLK_P_SPI = 100ns;
 
 		function new(virtual spi_intf intf);
@@ -61,9 +61,13 @@ package pkg_spi_fver;
 			logic [31:0] rx_bits = '0;
 
 			// int total_num_bits = 8*$pow(2, op_0[1:0]);
-			int total_num_bits = 8 << op_0[1:0];
+			// int total_num_bits = 8 << op_0[1:0];
 			int send_op_addr_size = 8;
 			int send_data_size = 8;
+			
+			// FIFO misc wires
+			int loop_repeat = 0;
+			logic [135:0] fifo_read = {64'hAAAA_AAAA, 64'hFFFF_FFFF, 8'd0};
 
 			spi.CS_N = 0;
 			#CLK_P_SPI;
@@ -78,26 +82,38 @@ package pkg_spi_fver;
 				spi.SCK = 0;
 			end
 
-			for (int i = 0; i < send_data_size; i++) begin
-				spi.COPI[3] = da_3[send_data_size-1-i];
-				spi.COPI[2] = da_2[send_data_size-1-i];
-				spi.COPI[1] = da_1[send_data_size-1-i];
-				spi.COPI[0] = da_0[send_data_size-1-i];
-				#CLK_P_SPI;
-				spi.SCK = 1; //rising edge send in
-				// rx_bits = {rx_bits[31:0], spi.CIPO};
-				rx_3 = {rx_3[6:0],spi.CIPO[3]};
-				rx_2 = {rx_2[6:0],spi.CIPO[2]};
-				rx_1 = {rx_1[6:0],spi.CIPO[1]};
-				rx_0 = {rx_0[6:0],spi.CIPO[0]};
-				// rx_bits = { //falling edge send out
-				// 	{rx_3[6:0],spi.CIPO[3]},
-				// 	{rx_2[6:0],spi.CIPO[2]},
-				// 	{rx_1[6:0],spi.CIPO[1]},
-				// 	{rx_0[6:0],spi.CIPO[0]} 
-				// };
-				#CLK_P_SPI;
-				spi.SCK = 0;
+			// Determine  the op_code is
+			if (op_0 == READ_FIFO) begin
+				loop_repeat = 9; //unique case  (136-bit data)
+			end else begin
+				loop_repeat = 1; //regular case (8, 16, 32 data)
+			end
+
+			for (int j = 0; j < loop_repeat; j++) begin
+				$display ("Loop = %d", j);
+				for (int i = 0; i < send_data_size; i++) begin
+					spi.COPI[3] = da_3[send_data_size-1-i];
+					spi.COPI[2] = da_2[send_data_size-1-i];
+					spi.COPI[1] = da_1[send_data_size-1-i];
+					spi.COPI[0] = da_0[send_data_size-1-i];
+					#CLK_P_SPI;
+					spi.SCK = 1; //rising edge send in
+					// rx_bits = {rx_bits[31:0], spi.CIPO};
+					rx_3 = {rx_3[6:0],spi.CIPO[3]};
+					rx_2 = {rx_2[6:0],spi.CIPO[2]};
+					rx_1 = {rx_1[6:0],spi.CIPO[1]};
+					rx_0 = {rx_0[6:0],spi.CIPO[0]};
+					// rx_bits = { //falling edge send out
+					// 	{rx_3[6:0],spi.CIPO[3]},
+					// 	{rx_2[6:0],spi.CIPO[2]},
+					// 	{rx_1[6:0],spi.CIPO[1]},
+					// 	{rx_0[6:0],spi.CIPO[0]} 
+					// };
+					#CLK_P_SPI;
+					spi.SCK = 0;
+				end
+				$display ("     Da1=%h", rx_1);
+				$display ("     Da0=%h", rx_0);
 			end
 
 			rx_bits = {rx_3, rx_2, rx_1, rx_0};
@@ -105,6 +121,7 @@ package pkg_spi_fver;
 			#CLK_P_SPI;
 			spi.CS_N = 1;
 			#CLK_P_SPI;
+			$display ("Opcode=%b", op_0);
 			$display ("RX Data=%h  , Addr=%d", rx_bits, ad_0);
 			$display ("     Da3=%h", rx_3);
 			$display ("     Da2=%h", rx_2);

@@ -18,7 +18,7 @@ module sync_fifo #(parameter DWIDTH=136, DEPTH=16) (
     input  logic [   DWIDTH-1 : 0] wdata,
     output logic                   empty,
     output logic                   full,
-    output logic [$clog2(DEPTH):0] numel,
+    output logic [$clog2(DEPTH)-1:0] numel,
     output logic [   DWIDTH-1 : 0] rdata
 );
 

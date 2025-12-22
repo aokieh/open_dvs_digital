@@ -1,3 +1,14 @@
+//---------------------------------------------------------------------------
+// Author: Ababakar Okieh
+// Date  : Dec. 21, 2025 <-- TODO: last edited date
+//
+// Module: spi_peripheral
+//
+// Description: 
+//  Package that defines Quad-SPI communication.
+//---------------------------------------------------------------------------
+`timescale 1ns/1ps
+
 module spi_peripheral (
     // SPI Interface
     input  logic CS_N,
@@ -6,25 +17,30 @@ module spi_peripheral (
     //4 channels for data in/out 
     output logic [3:0] CIPO,
     
-    // Memory Interface (SPI <-> Mem)
-    output logic [`RF_AWIDTH-1:0] addr,
-    output logic                  we,
+    // Memory Interface (SPI <---> Mem)
+    output logic [`RF_AWIDTH-1:0] addr_reg,
+    output logic                  we_reg,
     output logic                  we_out, //TODO: remove top-level later
-    output logic [ `RF_WIDTH-1:0] wdata,
-    output logic [  `RF_MASK-1:0] wmask,
-    input  logic [ `RF_WIDTH-1:0] rdata
+    output logic [ `RF_WIDTH-1:0] wdata_reg,
+    output logic [  `RF_MASK-1:0] wmask_reg,
+    input  logic [ `RF_WIDTH-1:0] rdata_reg,
+
+    //FIFO Interface (SPI <---> FIFO)
+    input  logic [15:0] rdata_spi_0,
+    input  logic [15:0] rdata_spi_1,
+    output logic [1:0] shift_en_fifo
 );
 
-    // Two 8-bit transmissions per channel - cycle 1 is op/addr, cycle 2 all data
+    // Two 8-bit transmissions per channel - cycle 1 is op/addr_reg, cycle 2 all data
     // COPI[3]: data_3, xxxx_xxxx
     // COPI[2]: data_2, xxxx_xxxx
-    // COPI[1]: data_1, addr
+    // COPI[1]: data_1, addr_reg
     // COPI[0]: data_0, opcode
 
     logic [7:0] opcode_0;       //opcode comes from COPI[0]
     logic [2:0] opcode_valid;
     
-    logic [7:0] addr_0;         //addr comes from COPI[1]
+    logic [7:0] addr_0;         //addr_reg comes from COPI[1]
     logic [4:0] addr_valid; 
 
     // the 8th bit isnt needed due to the write mechanism
@@ -41,39 +57,110 @@ module spi_peripheral (
     logic [7:0] tx_data_0;
     
     logic [ 3:0] cycle_count;
-    logic [ 7:0] fifo_tx_cycle_count;   //TODO: check if this addition is needed
+    logic [ 3:0] fifo_shift_count;
+    logic [ 6:0] fifo_tx_cycle_count;   //TODO: check if this addition is needed
+
+    // RX mode control - data into chip
     logic        en_rx_opcode;
     logic        en_rx_addr;
     logic        en_rx_rdata;
     logic        mem_write_next_re; // write next rising edge
 
+    // RX mode control - data into chip
+    logic       en_tx_fifo_opcode;
+    logic       en_tx_fifo_data;
+    logic       en_regfile_write;
+    logic       en_fifo_read;
 
-    // Count bits being transmitted.
-    // Used to decode opcode, addr, and data
-    always_ff @(posedge SCK, posedge CS_N) begin
-        if (CS_N) begin
-            cycle_count <= '0;
+    // TODO - Count bits being transmitted.
+    // Used to decode opcode, addr_reg, and data
+    // always_ff @(posedge SCK, posedge CS_N) begin
+    //     if (CS_N) begin
+    //         cycle_count <= '0;
+    //     end else begin
+    //         // Increment count if chip select is asserted
+    //         cycle_count <= cycle_count + 1'b1;
+
+    //         if(cycle_count <= 4'd15 && opcode_valid == 3'b111) begin
+    //             if (cycle_count == 4'd14) begin
+    //                 shift_en_fifo <= 2'b11;
+    //                 fifo_shift_count <= fifo_shift_count + 4'd1;
+    //             end
+    //         end
+
+    //     end
+    // end
+
+
+    //--- Counter Logic ---//
+always_ff @(posedge SCK or posedge CS_N) begin
+    if (CS_N) begin
+        cycle_count <= 0;
+        fifo_shift_count <= 0;
+        shift_en_fifo <= 2'b00;
+    end else begin
+        // In data streaming mode (opcode_valid == 3'b111)
+        if (opcode_valid == 3'b111) begin
+            // $display("cycle_count=%0d, fifo_shift_count=%0d, CIPO=%b", cycle_count, fifo_shift_count, CIPO);
+            if (cycle_count < 4'd14) begin
+                cycle_count <= cycle_count + 1;
+                shift_en_fifo <= 2'b00;
+            end else if (cycle_count == 4'd14) begin
+                // Load next FIFO value so it's ready for the next cycle (cycle 15)
+                shift_en_fifo <= 2'b11;
+                cycle_count <= cycle_count + 1;   // To 15
+            end else if (cycle_count == 4'd15) begin
+                shift_en_fifo <= 2'b00;
+                cycle_count <= 4'd8;
+                fifo_shift_count <= fifo_shift_count + 1;
+            end
+
+            // After 9 bursts, reset everything for next transaction
+            if (fifo_shift_count == 8 && cycle_count == 15) begin
+                cycle_count <= 0;         // Next CS_N low: fresh transaction
+                fifo_shift_count <= 0;
+            end
         end else begin
-            // Increment count if chip select is asserted
-            cycle_count <= cycle_count + 1'b1;
+            // Not in FIFO streaming mode
+            shift_en_fifo <= 2'b00;
+            // Normal linear count
+            cycle_count <= cycle_count + 1;
         end
     end
+end
 
     // Assert flags for opcode, address, and rx_data
     always_comb begin
         en_rx_opcode      = (cycle_count <= 7);  // opcode is across CH0
-        en_rx_addr        = (cycle_count <= 7);  // addr is across CH1
-        // Decode rx_data flag from opcode
-        en_rx_rdata       = (cycle_count >= 8 && cycle_count <= 14);
+        en_rx_addr        = (cycle_count <= 7);  // addr_reg is across CH1
+        en_rx_rdata       = (cycle_count >= 8 && 
+                            cycle_count <= 14);  // rx_data flag from opcode
+        
         opcode_valid = opcode_0[2:0];
-        mem_write_next_re = determine_write_next_re(opcode_valid[2], cycle_count);
+
+        en_regfile_write  = (opcode_valid[2] == 1'b0 &&
+                             cycle_count > 7 && 
+                             cycle_count <= 15);
+        en_fifo_read      = (opcode_valid == 3'b111 && 
+                            fifo_shift_count < 9 && 
+                            cycle_count >= 8 && 
+                            cycle_count <= 15);
+        
+        en_tx_fifo_opcode = (cycle_count <= 7);
+        // en_tx_fifo_data   = (opcode_valid == 3'b111 && fifo_tx_cycle_count >= 4'd8 && fifo_tx_cycle_count <= 4'd14);
+        en_tx_fifo_data   = (opcode_valid == 3'b111 
+                        && fifo_shift_count < 9
+                        && cycle_count >= 8 && cycle_count <= 15);
+        // opcode_valid == 3'b111 && fifo_tx_cycle_count > 4'd7 && fifo_shift_count <9)
+        
+        mem_write_next_re = determine_write_next_re(opcode_valid, cycle_count);
         addr_valid   = {addr_0[4:0]};
     end
 
     //proper address decoding
-    function automatic logic determine_write_next_re(input logic _opcode_msb, input logic [3:0] _cycle_count);
-        if (_opcode_msb == 0)
-            // Return 0 for read ops and opcode/addr transmission
+    function automatic logic determine_write_next_re(input logic [2:0] _opcode_bits, input logic [3:0] _cycle_count);
+        if (_opcode_bits <= 3'd3 || _opcode_bits == 3'd7)
+            // Return 0 for read ops and opcode/addr_reg transmission
             determine_write_next_re = 1'b0; //not write mode
         else
             determine_write_next_re = (_cycle_count == 4'd15);
@@ -107,13 +194,65 @@ module spi_peripheral (
     //---------------------------------------------------
     // SPI TX data to Controller on falling edge
     //---------------------------------------------------
+    // always_ff @(negedge SCK, posedge CS_N) begin
+    //     if (CS_N) begin
+    //         // Don't transmit when chip select is released
+    //         CIPO[3:0] <= 4'd0;
+    //         fifo_shift_count <= 4'd0;
+    //         shift_en_fifo <= 2'b00;
+    //         fifo_tx_cycle_count <= '0;
+    //     end else begin //sending out read data MSB down to LSB
+            
+    //         if (en_tx_fifo_opcode || en_tx_fifo_data ) begin
+    //             fifo_tx_cycle_count <= fifo_tx_cycle_count + 1;
+    //             shift_en_fifo <= 2'b00;
+    //         end           
+
+    //         if (opcode_valid[2] == 0 && cycle_count > 7) begin
+    //             if (cycle_count <= 15) begin
+    //                 CIPO[3] <= tx_data_3[15-(cycle_count)];
+    //                 CIPO[2] <= tx_data_2[15-(cycle_count)];
+    //                 CIPO[1] <= tx_data_1[15-(cycle_count)];
+    //                 CIPO[0] <= tx_data_0[15-(cycle_count)];
+    //             end
+    //         end
+
+    //         // else if (opcode_valid == 3'b111 && fifo_tx_cycle_count > 4'd7) begin  // we need to send 8-bits, 9-times to use same architecture
+    //         else if (en_tx_fifo_data) begin     // we need to send 8-bits, 9-times to use same architecture
+    //             if (fifo_tx_cycle_count <= 4'd15) begin
+    //                 CIPO[3] <= tx_data_3[15-(fifo_tx_cycle_count)];
+    //                 CIPO[2] <= tx_data_2[15-(fifo_tx_cycle_count)];
+    //                 CIPO[1] <= tx_data_1[15-(fifo_tx_cycle_count)];
+    //                 CIPO[0] <= tx_data_0[15-(fifo_tx_cycle_count)];
+                
+    //                 //shift one cycle early, to pre-load data? There's a reg in intf
+    //                 if (fifo_tx_cycle_count == 4'd14 && fifo_shift_count < 4'd9) begin
+    //                     shift_en_fifo <= 2'b11;
+    //                     fifo_shift_count <= fifo_shift_count + 4'd1;
+    //                     fifo_tx_cycle_count <= 4'd8; // needs to reset to index the byte properly 
+    //                 end else if (fifo_shift_count == 4'd9)  begin //this goes from 0-8 then resets, 9 total?
+    //                     shift_en_fifo <= 2'b00;
+    //                     fifo_shift_count <= 4'd0;
+    //                 end if (fifo_tx_cycle_count == 4'd15 && fifo_shift_count < 4'd9) begin
+    //                     fifo_tx_cycle_count <= 4'd8; //resetting to lower bound for bit assigning
+    //                 end
+
+    //             end else begin
+    //                 // not needed since signals are taken care of in rst?
+    //                 CIPO[3:0] <= 4'd0;
+    //             end
+    //         end
+    //     end
+    // end
+
     always_ff @(negedge SCK, posedge CS_N) begin
         if (CS_N) begin
             // Don't transmit when chip select is released
             CIPO[3:0] <= 4'd0;
 
         end else begin //sending out MSB down to LSB
-            if (opcode_valid[2] == 0 && cycle_count > 7) begin
+            //if ((opcode_valid[2] == 0 && cycle_count > 7) || (opcode_valid==3'b11 && fifo_shift_count <9 )) begin
+            if (en_regfile_write || en_fifo_read) begin 
                 if (cycle_count <= 15) begin
                     CIPO[3] <= tx_data_3[15-(cycle_count)];
                     CIPO[2] <= tx_data_2[15-(cycle_count)];
@@ -121,14 +260,6 @@ module spi_peripheral (
                     CIPO[0] <= tx_data_0[15-(cycle_count)];
                 end else
                     CIPO[3:0] <= 4'd0;
-            end
-
-//TODO: make changes to stream out bits from FIFO through SPI here
-            if (opcode_valid == 3'b111) begin  // we need to send 8-bits, 9-times to use same architecture
-
-                // fifo_tx_cycle_count <= fifo_tx_cycle_count + 8'd1;
-            end else begin
-                // fifo_tx_cycle_count <= 8'd0;
             end
         end
     end
@@ -141,15 +272,15 @@ module spi_peripheral (
     always_ff @(negedge SCK, posedge CS_N) begin
         if (CS_N) begin
             // Don't write to mem when chip select is released
-            we <= '0;
+            we_reg <= '0;
             we_out <='0;
 
         end else begin
             if (mem_write_next_re) begin
-                we <= '1;
+                we_reg <= '1;
                 we_out <='1;
             end else begin
-                we <= '0;
+                we_reg <= '0;
                 we_out <='0;
             end
         end
@@ -160,18 +291,20 @@ module spi_peripheral (
     // Memory uses masks for byte write ops.
 
     // regfile is word addressing, spi is byte addressing
-    // top 3 bits are word addr, bottom 2 bits are byte mask
-    assign addr = addr_0[$high(addr)+2 : 2]; //Kwesi said so - word address
+    // top 3 bits are word addr_reg, bottom 2 bits are byte mask
+    assign addr_reg = addr_0[$high(addr_reg)+2 : 2]; //Kwesi said so - word address
 
     // Decode data to be read from memory
     always_comb begin
         spi_tx_data = 32'd0;
         case (opcode_valid[2:0])
-            // 3'b000  : spi_tx_data[31-: 8] = rdata[8*(addr_valid[1:0])+: 8];
-            // 3'b001  : spi_tx_data[31-:16] = rdata[8*(addr_valid[1:0])+:16];
-            3'b000  : spi_tx_data[0+: 8] = rdata[8*(addr_valid[1:0])+: 8];
-            3'b001  : spi_tx_data[0+:16] = rdata[8*(addr_valid[1:0])+:16];
-            3'b010  : spi_tx_data 		  = rdata;
+            // 3'b000  : spi_tx_data[31-: 8] = rdata_reg[8*(addr_valid[1:0])+: 8];
+            // 3'b001  : spi_tx_data[31-:16] = rdata_reg[8*(addr_valid[1:0])+:16];
+            3'b000  : spi_tx_data[0+: 8] = rdata_reg[8*(addr_valid[1:0])+: 8];
+            3'b001  : spi_tx_data[0+:16] = rdata_reg[8*(addr_valid[1:0])+:16];
+            3'b010  : spi_tx_data 		  = rdata_reg;
+
+            3'b111  : spi_tx_data 		  = {rdata_spi_1, rdata_spi_0}; // TODO: read from FIFO
             default : spi_tx_data		  = 32'd0;
         endcase
         // assigning the readout data from memory
@@ -184,37 +317,38 @@ module spi_peripheral (
     //Decode data to be written to memory
     always_comb begin
         // case (spi_opcode[2:0])
-        wdata = 32'd0;
+        wdata_reg = 32'd0;
         case (opcode_valid[2:0])
             //write byte 4 times over
-            3'b100  : wdata = {(4){{rx_data_0[6:0], COPI[0]}}};
+            3'b100  : wdata_reg = {(4){{rx_data_0[6:0], COPI[0]}}};
             
             //write half-word two times over
-            3'b101  : wdata = {(2){
+            3'b101  : wdata_reg = {(2){
                                 {rx_data_1[6:0], COPI[1]},
                                 {rx_data_0[6:0], COPI[0]}
                                 }};
             
             //write full word once
-            3'b110  : wdata = {(1){
+            3'b110  : wdata_reg = {(1){
                                 {rx_data_3[6:0], COPI[3]},
                                 {rx_data_2[6:0], COPI[2]},
                                 {rx_data_1[6:0], COPI[1]},
                                 {rx_data_0[6:0], COPI[0]}}
                             };
-            default : wdata = '0;
+            // 3'b111 this is used for reading from FIFO
+            default : wdata_reg = '0;
         endcase
     end
 
     //Decode byte masks from SPI address
     always_comb begin
-        wmask = '0;
+        wmask_reg = '0;
         case (opcode_valid[2:0])
-            3'b100  : wmask[ addr_0[1:0]    ] = 1'b1;   //byte      write
-            3'b101  : wmask[(addr_0[1:0])+:2] = 2'b11;  //half-word write
-            3'b110  : wmask[(addr_0[1:0])+:4] = 4'hf;   //word      write
-            // 3'b111  : wmask[(spi_addr[2:0])+:8] = 8'hff;
-            default : wmask 				  =  '0;
+            3'b100  : wmask_reg[ addr_0[1:0]    ] = 1'b1;   //byte      write
+            3'b101  : wmask_reg[(addr_0[1:0])+:2] = 2'b11;  //half-word write
+            3'b110  : wmask_reg[(addr_0[1:0])+:4] = 4'hf;   //word      write
+            // 3'b111  : wmask_reg[(spi_addr[2:0])+:8] = 8'hff;
+            default : wmask_reg 				  =  '0;
         endcase
     end
 

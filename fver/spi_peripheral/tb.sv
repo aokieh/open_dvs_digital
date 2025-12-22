@@ -33,23 +33,30 @@ module tb ();
     logic [ `RF_WIDTH-1:0] rdata;
 
     // FIFO
-    // logic        fifo_rst_n;
-    // logic        fifo_rd_en;
-    // logic [ 9:0] fifo_numel = 15; // 1024 depth
+    logic [15:0]        rdata_spi_0, rdata_spi_1;
+    logic [1:0]         shift_en;
 
     always #(CLK_P/2) clk = ~clk;
 
     spi_peripheral i_spi_peripheral (
         .CS_N,
         .SCK,
+        
+        //SPI interface
         .COPI,
         .CIPO,
         
+        //Memory interface
         .addr,
         .we,
         .wdata,
         .wmask,
         .rdata
+
+        //FIFO interface
+        .shift_en,
+        .rdata_spi_0,
+        .rdata_spi_1
     );
 
 

@@ -21,7 +21,7 @@
 // Memory map: pulse on write - LEAST SIG BYTE
 `define mem_map_pulse(signal, row, lsb) \
     signal <= 0; \
-    if (we && (addr==row) && wmask[lsb]) \
+    if (we_reg && (addr_reg==row) && wmask_reg[lsb]) \
 	    signal <= 1;
 
 
@@ -31,23 +31,23 @@ module regfile (
     input  logic                  rst_n,
 
     // Memory Interface (SPI <-> Mem)
-    input  logic [`RF_AWIDTH-1:0] addr,
-    input  logic                  we,
-    input  logic [ `RF_WIDTH-1:0] wdata,
-    input  logic [  `RF_MASK-1:0] wmask,
-    output logic [ `RF_WIDTH-1:0] rdata,
+    input  logic [`RF_AWIDTH-1:0] addr_reg,
+    input  logic                  we_reg,
+    input  logic [ `RF_WIDTH-1:0] wdata_reg,
+    input  logic [  `RF_MASK-1:0] wmask_reg,
+    output logic [ `RF_WIDTH-1:0] rdata_reg,
 
     // FIFO
-    output logic                    fifo_rst_n,
+    output logic                    fifo_rst_n_reg,
     // input  logic                    fifo_empty,
     // input  logic                    fifo_full,
-    output logic                    fifo_rd_en,
-    input  logic [`FIFO_AWIDTH-1:0] fifo_numel,
+    output logic                    fifo_rd_en_reg,
+    input  logic [`FIFO_AWIDTH-1:0] fifo_numel_reg,
     // input  logic [ `FIFO_WIDTH-1:0] fifo_rdata,
 
     // IRQ
-    output logic [9:0] irq_deassert_thresh,
-    output logic [9:0] irq_assert_thresh,
+    output logic [9:0] irq_deassert_thresh_reg,
+    output logic [9:0] irq_assert_thresh_reg,
 
     // DAC
     // output logic [`DAC_WIDTH-1:0] dac_config [`NUM_DACS],
@@ -66,13 +66,13 @@ module regfile (
     output logic [23:0] bias_2,
     output logic [23:0] bias_3,
 
-    input logic [9:0] event_rate
+    input logic [9:0] event_rate_reg
 );
     localparam ROW_DIV = $clog2(`LSB_DIV);
     logic [`RF_WIDTH-1:0] mem_in  [`RF_DEPTH];
     logic [`RF_WIDTH-1:0] mem_out [`RF_DEPTH];
-    // logic [`DAC_WIDTH-1:0] dac_config_0 = ;
 
+    //  DAC assignments (Registers <--> Ports)
     logic [`DAC_WIDTH-1:0] dac_configs [`NUM_DACS];
 
     assign dac_config_0 = dac_configs[0];
@@ -85,6 +85,7 @@ module regfile (
     assign dac_config_6 = dac_configs[6];
     assign dac_config_7 = dac_configs[7];
 
+    //  Biases assignments (Registers <--> Ports)
     logic [23:0] bias [`NUM_BIASES];
     assign bias_0 = bias[0];
     assign bias_1 = bias[1];
@@ -107,12 +108,12 @@ module regfile (
         // FIFO
         // `mem_map_ro(fifo_empty, 2)
         // `mem_map_ro(fifo_full,  3)
-        `mem_map_ro(fifo_numel, 4)
+        `mem_map_ro(fifo_numel_reg, 4)
         // `mem_map_ro(fifo_rdata, 8)
         
         // IRQ
-        `mem_map(irq_deassert_thresh, 12)
-        `mem_map(irq_assert_thresh, 14)
+        `mem_map(irq_deassert_thresh_reg, 12)
+        `mem_map(irq_assert_thresh_reg, 14)
 
         // DACs - TODO: insert proper DAC addresses
         for (int i = 0; i < `NUM_DACS; i++) begin
@@ -126,7 +127,7 @@ module regfile (
         end
 
         //INTERNAL EVENT RATE
-        `mem_map_ro(event_rate, 108) //addressing byte 
+        `mem_map_ro(event_rate_reg, 108) //addressing byte 
 
     end
 
@@ -136,12 +137,12 @@ module regfile (
     //---------------------------------------------------------------
     always @(posedge clk, negedge rst_n) begin
         if (!rst_n) begin
-            fifo_rd_en <= 0;
-            fifo_rst_n <= 0;
+            fifo_rd_en_reg <= 0;
+            fifo_rst_n_reg <= 0;
         end 
         else begin
-            `mem_map_pulse(fifo_rst_n, 0, 1)
-            `mem_map_pulse(fifo_rd_en, 2, 0)
+            `mem_map_pulse(fifo_rst_n_reg, 0, 1)
+            `mem_map_pulse(fifo_rd_en_reg, 2, 0)
         end
     end
 
@@ -155,10 +156,10 @@ module regfile (
     //             mem_in[i] <= '0;
     //     end 
     //     else begin
-    //         if (we) begin
-    //             foreach (wmask[i]) begin
-    //                 if (wmask[i]) 
-    //                     mem_in[addr][i*8 +: 8] <= wdata[i*8 +: 8];
+    //         if (we_reg) begin
+    //             foreach (wmask_reg[i]) begin
+    //                 if (wmask_reg[i]) 
+    //                     mem_in[addr_reg][i*8 +: 8] <= wdata_reg[i*8 +: 8];
     //             end
     //         end
     //     end
@@ -169,7 +170,7 @@ module regfile (
     // // Read data
     // //---------------------------------------------------------------
     // always_comb begin
-    //     rdata <= mem_out[addr];	
+    //     rdata_reg <= mem_out[addr_reg];	
     // end
 
 //---------------------------------------------------------------
@@ -182,10 +183,10 @@ always @(posedge clk or negedge rst_n) begin
         end
     end 
     else begin
-        if (we) begin
+        if (we_reg) begin
             for (int i = 0; i < `RF_MASK; i++) begin
-                if (wmask[i]) begin
-                    mem_in[addr][i*8 +: 8] <= wdata[i*8 +: 8];
+                if (wmask_reg[i]) begin
+                    mem_in[addr_reg][i*8 +: 8] <= wdata_reg[i*8 +: 8];
                 end
             end
         end
@@ -196,7 +197,7 @@ end
 // Read data
 //---------------------------------------------------------------
 always_comb begin
-    rdata = mem_out[addr];  // Changed <= to = in combinational block
+    rdata_reg = mem_out[addr_reg];  // Changed <= to = in combinational block
 end
 
 
