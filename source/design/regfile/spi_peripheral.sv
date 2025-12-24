@@ -134,7 +134,9 @@ end
         en_rx_opcode      = (cycle_count <= 7);  // opcode is across CH0
         en_rx_addr        = (cycle_count <= 7);  // addr_reg is across CH1
         en_rx_rdata       = (cycle_count >= 8 && 
-                            cycle_count <= 14);  // rx_data flag from opcode
+                            cycle_count <= 14 && //TODO: glitch here <=15?
+                            !en_regfile_write &&
+                            !en_fifo_read);  // rx_data flag from opcode
         
         opcode_valid = opcode_0[2:0];
 

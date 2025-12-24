@@ -36,7 +36,7 @@ module fifo_intf #(parameter DWIDTH=136, DEPTH=16) (
                 fifo_shift_count <= fifo_shift_count + 4'd1;
             end
 
-            else if (fifo_shift_count == 8) begin
+            else if (fifo_shift_count == 8) begin //reset for next word
                 ptr_1 <= 8'd135;
                 ptr_2 <= 8'd71;
                 fifo_shift_count <= 4'd0;
@@ -52,7 +52,8 @@ module fifo_intf #(parameter DWIDTH=136, DEPTH=16) (
     // end
 
     // // Next-row read enable - after shift #9 AND 8 shift requested
-    assign fifo_rd_en_next = (fifo_shift_count == 8) && shift_en; //TODO: there may be a 1 cycle delay here
+    assign fifo_rd_en_next = (fifo_shift_count == 8) && shift_en; 
+    //TODO: there may be a 1 cycle delay here - THERE IS A GLITCH!!!
 
     integer i;
     always @* begin

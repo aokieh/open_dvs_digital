@@ -98,6 +98,15 @@ module tb ();
         #CLK_P;
     endtask : read_data_fifo
 
+    task automatic read_complete_fifo();   
+        // read_data_fifo();
+         for (int q = 0; q < 16; q++) begin
+            $display ("     \n\nq=%h", q[7:0]);
+            spi_ctrl.trans(READ_FIFO, 0, q[7:0]); //addr, data don't matter
+            #CLK_P;
+            #20;
+         end
+    endtask : read_complete_fifo
 
     // task automatic read_full_depth();
     //     int i = 0;
@@ -226,15 +235,18 @@ module tb ();
         $display("Full flag = %b", full_fifo);
 
         // Write a bunch of data to the FIFO
-        // write_data_fifo(DEPTH);
-        write_data_fifo(1);
+        write_data_fifo(DEPTH);
+        // write_data_fifo(2);
         clk_cycle_cnt = 0; //resetting counters
         shift_cnt = 0;
 
         #20;
-        
-        read_data_fifo();
-        #20;
+        read_complete_fifo();
+        // read_data_fifo();
+        // #50;
+
+        // read_data_fifo();
+        // #20;
         // $display("Empty flag = %b", empty_fifo);
 
         // // Check for full flag

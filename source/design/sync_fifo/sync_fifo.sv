@@ -34,7 +34,7 @@ module sync_fifo #(parameter DWIDTH=136, DEPTH=16) (
 
     // Empty and full flags
     assign empty = (counter == 0);
-    assign full  = (counter == DEPTH-1);
+    assign full  = (counter == DEPTH);
 
     // Assign numel
     assign numel = counter;
