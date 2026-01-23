@@ -112,6 +112,8 @@ package pkg_spi_fver;
 					#CLK_P_SPI;
 					spi.SCK = 0;
 				end
+				$display ("     Da3=%h", rx_3);
+				$display ("     Da2=%h", rx_2);
 				$display ("     Da1=%h", rx_1);
 				$display ("     Da0=%h", rx_0);
 			end

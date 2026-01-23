@@ -14,11 +14,11 @@ module tb ();
     logic CS_N;
     logic [3:0] COPI; 
     logic [3:0] CIPO;
-    logic                   wr_en_fifo;
-    logic [   DWIDTH-1 : 0] wdata_fifo;
-    logic                   empty_fifo;
-    logic                   full_fifo;
-    logic [$clog2(DEPTH)-1:0] numel_fifo;
+    logic                     wr_en_fifo;
+    logic [   DWIDTH-1 : 0]   wdata_fifo_0, wdata_fifo_1;
+    logic [1:0]               empty_fifo;
+    logic [1:0]               full_fifo;
+    logic [$clog2(DEPTH)-1:0] numel_fifo_0, numel_fifo_1;
 
     // Internal counters for FIFOs 
     logic [4:0] clk_cycle_cnt;  // count to 7, reset (8 total)
@@ -27,6 +27,17 @@ module tb ();
     // Dump variable for the data log file
     integer log_file;
     
+    // Registers for error checking
+    logic [11:0] dac_write_data     [7:0];
+    logic [11:0] dac_read_data      [7:0];
+
+    logic [23:0] bias_write_data    [3:0];
+    logic [23:0] bias_read_data     [3:0];
+
+    // Example on assigning random data to registers
+    logic [11:0] irq_deassert_write_val = $random & 10'h3FF;
+    logic [11:0] irq_assert_write_val   = $random & 10'h3FF;
+
     spi_intf i_spi_intf(
         .CS_N,
         .SCK ,
@@ -58,10 +69,12 @@ module tb ();
 
         // FIFO Signals
         .wr_en_fifo(wr_en_fifo),
-        .wdata_fifo(wdata_fifo),
+        .wdata_fifo_0(wdata_fifo_0),
+        .wdata_fifo_1(wdata_fifo_1),
         .empty_fifo(empty_fifo),
         .full_fifo(full_fifo),
-        .numel_fifo(numel_fifo)
+        .numel_fifo_0(numel_fifo_0),
+        .numel_fifo_1(numel_fifo_1)
     );
 
     // ---------------- Tasks and Verification Sequences ------------------
@@ -76,16 +89,20 @@ module tb ();
 
         for (int i = 0; i < num; i++) begin
             @(posedge clk);
-            #0.1ns;
+            #20ns;
             wr_en_fifo = 1;
             // wdata_fifo = $urandom_range(0, (2**FIFO_DWIDTH)-1);
             // write the fifo_addr number in the last write
-            wdata_fifo = {$urandom(), $urandom(), $urandom(), $urandom(), i[7:0]};
+            // wdata_fifo = {$urandom(), $urandom(), $urandom(), $urandom(), i[7:0]};
+            // wdata_fifo = {(16){8'hAA}, i[7:0]};
+            wdata_fifo_0 = {{16{8'hAA}}, i[7:0]};
+            wdata_fifo_1 = {{16{8'hBB}}, i[7:0]}; 
             // wdata_fifo = { $urandom(), $urandom(), $urandom(), $urandom(), $urandom() };
-            $display("i = %2d  Writing data = %h", i, wdata_fifo);
+            $display("\ni = %2d  Writing data = %h", i, wdata_fifo_0);
+            $display("i = %2d  Writing data = %h", i, wdata_fifo_1);
 
             @(posedge clk);
-            #0.1ns;
+            #20ns;
             wr_en_fifo = 0;
         end
 
@@ -107,6 +124,91 @@ module tb ();
             #20;
          end
     endtask : read_complete_fifo
+
+    task automatic pulse_fifo_rst_n(input logic [3:0] val);
+        spi_ctrl.trans(WRITE_BT, 1, val);
+        #CLK_P;
+    endtask
+
+    task automatic set_irq(input logic [11:0] deassert_val, input logic [11:0] assert_val, input logic mode_read);
+            spi_ctrl.trans(WRITE_HW, 12, deassert_val);
+            #CLK_P;
+            spi_ctrl.trans(WRITE_HW, 14, assert_val);
+            #CLK_P;
+        if(mode_read) begin
+            spi_ctrl.trans(READ_HW, 12, 0, deassert_val);
+            #CLK_P;
+            spi_ctrl.trans(READ_HW, 14, 0, assert_val);
+            #CLK_P;
+        end 
+    endtask
+
+    task automatic write_dacs(input logic [11:0] val, input logic mode_read);
+        for (int i = 0; i < `NUM_DACS; i++) begin
+            spi_ctrl.trans(WRITE_HW, i*2 + 20, val);
+            dac_write_data[i] = val;
+            #CLK_P;
+        end
+        if (mode_read) begin
+            for (int i = 0; i < `NUM_DACS; i++) begin
+                spi_ctrl.trans(READ_HW, i*2 + 20, 0, val);
+                // dac_write_data[i] = val;
+                #CLK_P;
+            end
+        end
+    endtask
+
+    task automatic read_dacs(input logic [11:0] val);
+        for (int i = 0; i < `NUM_DACS; i++) begin
+            spi_ctrl.trans(WRITE_HW, i*2 + 20, val+i);
+            dac_write_data[i] = val;
+            #CLK_P;
+        end
+        
+        for (int i = 0; i < `NUM_DACS; i++) begin
+            spi_ctrl.trans(READ_HW, i*2 + 20, 0, val+i);
+            #CLK_P;
+        end
+    endtask
+
+    task automatic write_dacs_seq();
+        for (int i = 0; i < 10; i++) begin
+            spi_ctrl.trans(WRITE_HW, i*2 + 20, 'h5aa + i);
+            dac_write_data[i] = 'h5aa + i;
+            #CLK_P;
+        end
+    endtask
+
+    task automatic write_biases(input logic [3:0] start_val, input logic is_uniform, input logic mode_read);
+        logic [3:0] digit;
+        logic [23:0] bias_val;
+        for (int i = 0; i < `NUM_BIASES; i++) begin
+            if (is_uniform)
+                digit = start_val;
+            else
+                digit = (start_val + i) & 4'hF;
+
+            bias_val = {6{digit}};
+            spi_ctrl.trans(WRITE_WD, 112 + i*4, bias_val);
+            bias_write_data[i] = bias_val;
+            $display("Bias[%0d] write = %06h", i, bias_val);
+            #CLK_P;
+        end
+
+        for (int i = 0; i < `NUM_BIASES; i++) begin
+            if(mode_read) begin
+                if (is_uniform)
+                    digit = start_val;
+                else
+                    digit = (start_val + i) & 4'hF;
+                bias_val = {6{digit}};
+                spi_ctrl.trans(READ_WD, 112 + i*4, 0, bias_val);
+                bias_write_data[i] = bias_val;
+                $display("Bias[%0d] write = %06h", i, bias_val);
+                #CLK_P;
+            end
+        end
+    endtask
 
     // task automatic read_full_depth();
     //     int i = 0;
@@ -264,6 +366,40 @@ module tb ();
         
         // $display("Full flag = %b", full_fifo);
         // #20;
+        
+        // $fclose(log_file);
+
+        // Register file 
+                // ---------------- Write all ones ------------------------
+        pulse_fifo_rst_n('hf);
+        set_irq('hfff, 'hfff, 0);
+        write_dacs('hfff, 0);
+        write_biases(4'hf, 1, 0);
+        #500ns;
+
+        // ---------------- Write all zeros -----------------------
+        pulse_fifo_rst_n('h0);
+        set_irq('h000, 'h000, 0);
+        write_dacs('h000, 0);
+        write_biases(4'h0, 1, 0);
+        #500ns;
+
+        // ---------------- Write sequence data -------------------
+        write_dacs_seq();
+        write_biases(4'ha, 0, 0);              // starts A, increments
+        set_irq('h2AA, 'h2AA, 0);
+        #500ns;
+
+        // ---------------- Read and dump comparison --------------
+        // Read Chip ID
+        spi_ctrl.trans(READ_BT, 0, 0, 'h55);
+        #CLK_P;
+
+        set_irq(irq_deassert_write_val, irq_assert_write_val, 1);
+        read_dacs('h100);   //writes consecutive data to dacs & reads
+        write_biases(4'h3, 0, 1);  //write and read beginning at 333333
+
+        #300ns;
         
         $fclose(log_file);
         $stop; //end of top-level testbench 

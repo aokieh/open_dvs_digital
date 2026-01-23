@@ -24,10 +24,12 @@ module spi_fifo_regfile #(parameter DWIDTH=136, DEPTH=16)(
 
     // FIFO Signals
     input logic                     wr_en_fifo,
-    input logic [   DWIDTH-1 : 0]   wdata_fifo,
-    output logic                    empty_fifo,
-    output logic                    full_fifo,
-    output logic [$clog2(DEPTH)-1:0] numel_fifo
+    input logic [   DWIDTH-1 : 0]   wdata_fifo_0,
+    input logic [   DWIDTH-1 : 0]   wdata_fifo_1,
+    output logic [1:0]                empty_fifo,
+    output logic [1:0]                 full_fifo,
+    output logic [$clog2(DEPTH)-1:0] numel_fifo_0,
+    output logic [$clog2(DEPTH)-1:0] numel_fifo_1
 );
 
 
@@ -51,22 +53,37 @@ module spi_fifo_regfile #(parameter DWIDTH=136, DEPTH=16)(
     //---------------------------------------------------
     // Sync FIFO
     //---------------------------------------------------
-    sync_fifo_top #(DWIDTH, DEPTH) i_sync_fifo_top(
+    sync_fifo_top #(DWIDTH, DEPTH) i_sync_fifo_top_0(
         .clk(clk),
         .rst_n(rst_n),
 
         // FIFO signals to top level
         .wr_en_fifo,
-        .wdata_fifo,
-        .empty_fifo,
-        .full_fifo,
-        .numel_fifo,
+        .wdata_fifo(wdata_fifo_0),
+        .empty_fifo(empty_fifo[0]),
+        .full_fifo(full_fifo[0]),
+        .numel_fifo(numel_fifo_0),
 
         // SPI Interface signals
         .shift_en_fifo(shift_en_fifo[0]),
         .rdata_spi(rdata_spi_0)
     );
 
+        sync_fifo_top #(DWIDTH, DEPTH) i_sync_fifo_top_1(
+        .clk(clk),
+        .rst_n(rst_n),
+
+        // FIFO signals to top level
+        .wr_en_fifo,
+        .wdata_fifo(wdata_fifo_1),
+        .empty_fifo(empty_fifo[1]),
+        .full_fifo(full_fifo[1]),
+        .numel_fifo(numel_fifo_1),
+
+        // SPI Interface signals
+        .shift_en_fifo(shift_en_fifo[1]),
+        .rdata_spi(rdata_spi_1)
+    );
 
         //---------------------------------------------------
         // SPI Peripheral
@@ -102,11 +119,11 @@ module spi_fifo_regfile #(parameter DWIDTH=136, DEPTH=16)(
             .rst_n(rst_n),
 
             // Memory Interface
-            .we_reg(),
-            .addr_reg(),
-            .wdata_reg(),
-            .wmask_reg(),
-            .rdata_reg(),
+            .we_reg,
+            .addr_reg,
+            .wdata_reg,
+            .wmask_reg,
+            .rdata_reg,
             
             // FIFO
             .fifo_rst_n_reg(),
@@ -133,7 +150,7 @@ module spi_fifo_regfile #(parameter DWIDTH=136, DEPTH=16)(
             .bias_1(),
             .bias_2(),
             .bias_3(),
-            .event_rate_reg()         //added code
+            .event_rate_reg(event_rate)         //added code
         );
 
 endmodule : spi_fifo_regfile
