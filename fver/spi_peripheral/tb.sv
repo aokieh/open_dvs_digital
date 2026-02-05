@@ -26,15 +26,15 @@ module tb ();
     class_spi_ctrl spi_ctrl = new (i_spi_intf);
 
     // Memory Interface
-    logic                  we;
-    logic [`RF_AWIDTH-1:0] addr;
-    logic [ `RF_WIDTH-1:0] wdata;
-    logic [  `RF_MASK-1:0] wmask;
-    logic [ `RF_WIDTH-1:0] rdata;
+    logic                  we_reg;
+    logic [`RF_AWIDTH-1:0] addr_reg;
+    logic [ `RF_WIDTH-1:0] wdata_reg;
+    logic [  `RF_MASK-1:0] wmask_reg;
+    logic [ `RF_WIDTH-1:0] rdata_reg;
 
     // FIFO
     logic [15:0]        rdata_spi_0, rdata_spi_1;
-    logic [1:0]         shift_en;
+    logic [1:0]         shift_en_fifo;
 
     always #(CLK_P/2) clk = ~clk;
 
@@ -47,14 +47,14 @@ module tb ();
         .CIPO,
         
         //Memory interface
-        .addr,
-        .we,
-        .wdata,
-        .wmask,
-        .rdata
+        .addr_reg,
+        .we_reg,
+        .wdata_reg,
+        .wmask_reg,
+        .rdata_reg,
 
         //FIFO interface
-        .shift_en,
+        .shift_en_fifo,
         .rdata_spi_0,
         .rdata_spi_1
     );
@@ -73,15 +73,15 @@ module tb ();
 
         #500ns;
 
-        rdata = 'h55_00_00_00;
+        rdata_reg = 'h55_00_00_00;
         spi_ctrl.trans(READ_BT, 3, 0, 'h55);
         #100ns;
 
-        rdata = 'hAA_BB_00_00;
+        rdata_reg = 'hAA_BB_00_00;
         spi_ctrl.trans(READ_HW, 6, 0, 'hAABB);
         #100ns;
 
-        rdata = 'hCC_CC_DD_DD;
+        rdata_reg = 'hCC_CC_DD_DD;
         spi_ctrl.trans(READ_WD, 8, 0, 'hCCCCDDDD);
         #300ns;
 

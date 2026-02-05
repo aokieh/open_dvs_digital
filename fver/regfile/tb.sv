@@ -38,19 +38,38 @@ module tb ();
     regfile i_regfile (
         .clk,
         .rst_n,
-        .we,
-        .addr,
-        .wdata,
-        .wmask,
-        .rdata,
-        .fifo_rst_n,
-        .fifo_rd_en,
-        .fifo_numel,
-        .irq_deassert_thresh,
-        .irq_assert_thresh,
-        .dac_config,
-        .bias,              //added code    
-        .event_rate          //added code
+        .we_reg(we),
+        .addr_reg(addr),
+        .wdata_reg(wdata),
+        .wmask_reg(wmask),
+        .rdata_reg(rdata),
+
+        .fifo_rst_n_reg(fifo_rst_n),
+        .fifo_rd_en_reg(fifo_rd_en),
+        .fifo_numel_reg(fifo_numel),
+        
+        .irq_deassert_thresh_reg(irq_deassert_thresh),
+        .irq_assert_thresh_reg(irq_assert_thresh),
+
+                // DAC outputs - connect individually
+        .dac_config_0       (dac_config[0]),
+        .dac_config_1       (dac_config[1]),
+        .dac_config_2       (dac_config[2]),
+        .dac_config_3       (dac_config[3]),
+        .dac_config_4       (dac_config[4]),
+        .dac_config_5       (dac_config[5]),
+        .dac_config_6       (dac_config[6]),
+        .dac_config_7       (dac_config[7]),
+
+        // Bias outputs
+        .bias_0             (bias[0]),
+        .bias_1             (bias[1]),
+        .bias_2             (bias[2]),
+        .bias_3             (bias[3]),
+
+        // .dac_config_reg(dac_config),
+        // .bias_reg(bias),              //added code    
+        .event_rate_reg(event_rate)          //added code
     );
 
 
@@ -134,13 +153,48 @@ module tb ();
         event_rate = 'h3FF;
         read_mem(27);  //reading data at internal event_rate ROM
 
+
+        //write to dacs
+        // write_mem((4+1), {32'hffff_ffff}, '1); // test write: hex bits x000_x000 DNE!
+        write_mem(5, {32'h0000_0101}, '1);
+        $display("\nData in mem[%d] = %0h, expected 101, current mask = %d", addr, rdata, wmask);
+
+        write_mem(5, {32'h0102_0101}, '1);
+        $display("\nData in mem[%d] = %0h, expected 102, current mask = %d", addr, rdata, wmask);
+
+        write_mem(6, {32'h0000_0103}, '1);
+        $display("\nData in mem[%d] = %0h, expected 103, current mask = %d", addr, rdata, wmask);
+
+        write_mem(6, {32'h0104_0103}, '1);
+        $display("\nData in mem[%d] = %0h, expected 104, current mask = %d", addr, rdata, wmask);
+
+        write_mem(7, {32'h0000_0105}, '1);
+        $display("\nData in mem[%d] = %0h, expected 105, current mask = %d", addr, rdata, wmask);
+
+        write_mem(7, {32'h0106_0105}, '1);
+        $display("\nData in mem[%d] = %0h, expected 106, current mask = %d", addr, rdata, wmask);
+
+        write_mem(8, {32'h0000_0107}, '1);
+        $display("\nData in mem[%d] = %0h, expected 107, current mask = %d", addr, rdata, wmask);
+
+        write_mem(8, {32'h0108_0107}, '1);
+        $display("\nData in mem[%d] = %0h, expected 108, current mask = %d", addr, rdata, wmask);
+
+
         //write to biases
         write_mem(28, {8'h00, 24'hAAA}, '1);
-        write_mem(29, {8'h00, 24'hBBB}, '1);
-        write_mem(30, {8'h00, 24'hCCC}, '1);
-        write_mem(31, {8'h00, 24'hDDD}, '1);
+        $display("\nData in mem[%d] = %0h, expected aaa, current mask = %d", addr, rdata, wmask);
 
-        $display("\nData in mem[%b] = %0h, expected 256, current mask = %d", addr, rdata, wmask);
+        write_mem(29, {8'h00, 24'hBBB}, '1);
+        $display("\nData in mem[%d] = %0h, expected bbb, current mask = %d", addr, rdata, wmask);
+
+        write_mem(30, {8'h00, 24'hCCC}, '1);
+        $display("\nData in mem[%d] = %0h, expected ccc, current mask = %d", addr, rdata, wmask);
+
+        write_mem(31, {8'h00, 24'hDDD}, '1);
+        $display("\nData in mem[%d] = %0h, expected ddd, current mask = %d", addr, rdata, wmask);
+
+        // $display("\nData in mem[%d] = %0h, expected ddd, current mask = %d", addr, rdata, wmask);
         // assert(fifo_rst_n == 1)
         // else
             // $error("FIFO reset write/read failed: expected 1, got %0d", fifo_rst_n);

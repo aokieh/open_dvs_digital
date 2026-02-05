@@ -50,6 +50,26 @@ module spi_fifo_regfile #(parameter DWIDTH=136, DEPTH=16)(
     logic [1:0] shift_en_fifo;
 
 
+    //  DAC assignments (Registers <--> Ports)
+    logic [`DAC_WIDTH-1:0] dac_configs [`NUM_DACS];
+
+    assign dac_config_0 = dac_configs[0];
+    assign dac_config_1 = dac_configs[1];
+    assign dac_config_2 = dac_configs[2];
+    assign dac_config_3 = dac_configs[3];
+
+    assign dac_config_4 = dac_configs[4];
+    assign dac_config_5 = dac_configs[5];
+    assign dac_config_6 = dac_configs[6];
+    assign dac_config_7 = dac_configs[7];
+
+    //  Biases assignments (Registers <--> Ports)
+    logic [23:0] bias [`NUM_BIASES];
+    assign bias_0 = bias[0];
+    assign bias_1 = bias[1];
+    assign bias_2 = bias[2];
+    assign bias_3 = bias[3];
+
     //---------------------------------------------------
     // Sync FIFO
     //---------------------------------------------------
@@ -135,21 +155,21 @@ module spi_fifo_regfile #(parameter DWIDTH=136, DEPTH=16)(
             .irq_assert_thresh_reg(),
             
             // DAC
-            .dac_config_0(),
-            .dac_config_1(),
-            .dac_config_2(),
-            .dac_config_3(),
+            .dac_config_0,
+            .dac_config_1,
+            .dac_config_2,
+            .dac_config_3,
 
-            .dac_config_4(),
-            .dac_config_5(),
-            .dac_config_6(),
-            .dac_config_7(),
+            .dac_config_4,
+            .dac_config_5,
+            .dac_config_6,
+            .dac_config_7,
 
             //ADDED PORTS -- testing top level IO. remove later
-            .bias_0(),              //added code - testing yosys flow    
-            .bias_1(),
-            .bias_2(),
-            .bias_3(),
+            .bias_0,              //added code - testing yosys flow    
+            .bias_1,
+            .bias_2,
+            .bias_3,
             .event_rate_reg(event_rate)         //added code
         );
 

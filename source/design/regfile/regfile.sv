@@ -61,10 +61,10 @@ module regfile (
     output logic [`DAC_WIDTH-1:0] dac_config_7,
 
     //TEST ADDITIONAL PORTS
-    output logic [23:0] bias_0,
-    output logic [23:0] bias_1,
-    output logic [23:0] bias_2,
-    output logic [23:0] bias_3,
+    output logic [`BIAS_WIDTH-1:0] bias_0,
+    output logic [`BIAS_WIDTH-1:0] bias_1,
+    output logic [`BIAS_WIDTH-1:0] bias_2,
+    output logic [`BIAS_WIDTH-1:0] bias_3,
 
     input logic [9:0] event_rate_reg
 );

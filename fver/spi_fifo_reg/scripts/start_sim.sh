@@ -11,4 +11,5 @@ xrun -64bit \
      +nospecify \
      +nowarnNODNTW \
      -f ../scripts/xrun.f \
+     -input spi_fifo_reg_top.tcl
      # -input self_check.tcl
