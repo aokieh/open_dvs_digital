@@ -10,21 +10,26 @@
 //---------------------------------------------------------------------------
 
 
-module sync_fifo #(parameter DWIDTH=136, DEPTH=16) (
+module sync_fifo (
+    `ifdef USE_POWER_PINS
+        inout vccd1, // OpenLane Power  - comment out if needed
+        inout vssd1, // OpenLane Ground - comment out if needed
+    `endif
+
     input  logic                   clk,
     input  logic                   rst_n,
     input  logic                   wr_en,
     input  logic                   rd_en,
-    input  logic [   DWIDTH-1 : 0] wdata,
+    input  logic [   `FIFO_WIDTH-1 : 0] wdata,
     output logic                   empty,
     output logic                   full,
-    output logic [$clog2(DEPTH)-1:0] numel,
-    output logic [   DWIDTH-1 : 0] rdata
+    output logic [`FIFO_AWIDTH-1:0] numel,
+    output logic [`FIFO_WIDTH-1 : 0] rdata
 );
 
-    logic [$clog2(DEPTH)   : 0] counter; // Keep track of data in FIFO
-    logic [$clog2(DEPTH)-1 : 0] wr_ptr, rd_ptr;
-    logic [       DWIDTH-1 : 0] fifo [DEPTH];
+    logic [`FIFO_AWIDTH   : 0] counter; // Keep track of data in FIFO
+    logic [`FIFO_AWIDTH-1 : 0] wr_ptr, rd_ptr;
+    logic [       `FIFO_WIDTH-1 : 0] fifo [`FIFO_DEPTH];
 
     logic read, write;
 
@@ -34,7 +39,7 @@ module sync_fifo #(parameter DWIDTH=136, DEPTH=16) (
 
     // Empty and full flags
     assign empty = (counter == 0);
-    assign full  = (counter == DEPTH);
+    assign full  = (counter == `FIFO_DEPTH);
 
     // Assign numel
     assign numel = counter;

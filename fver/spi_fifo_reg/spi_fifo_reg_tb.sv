@@ -304,7 +304,7 @@ module tb ();
         // $sdf_annotate("/home/aokieh1/projects/digital_top_hardened_macro/openlane/digital_top/runs/antenna_clean/final/sdf/nom_tt_025C_1v80/digital_top__nom_tt_025C_1v80.sdf", i_digital_top);
         $sdf_annotate("/tmp/aokieh1/openlane_test/caravel_user/openlane/spi_peripheral/runs/26_02_03_17_06/final/sdf/nom_tt_025C_1v80/spi_peripheral__nom_tt_025C_1v80.sdf", i_spi_fifo_regfile.i_spi_peripheral);
 
-        // TODO: write python script to fill out sdf file paths 
+        // TODO: write python script to fill out sdf file paths
         
         log_file = $fopen("spi_cipo_monitor.txt", "w");
         spi_ctrl.init();
@@ -347,6 +347,12 @@ module tb ();
         shift_cnt = 0;
 
         #20;
+                // Check for empty flag
+        $display("Empty flag = %b", empty_fifo);
+
+        // Check for full flag
+        $display("Full flag = %b", full_fifo);
+        
         read_complete_fifo();
         // read_data_fifo();
         // #50;

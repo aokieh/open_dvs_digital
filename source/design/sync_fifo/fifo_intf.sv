@@ -10,10 +10,15 @@
 //---------------------------------------------------------------------------
 
 
-module fifo_intf #(parameter DWIDTH=136, DEPTH=16) (
+module fifo_intf (
+    `ifdef USE_POWER_PINS
+        inout vccd1, // OpenLane Power  - comment out if needed
+        inout vssd1, // OpenLane Ground - comment out if needed
+    `endif
+    
     input  logic                  clk,
     input  logic                  rst_n,
-    input logic [   DWIDTH-1 : 0] rdata_fifo,       // data bus - from FIFO
+    input logic [   `FIFO_WIDTH-1 : 0] rdata_fifo,       // data bus - from FIFO
     input logic                   shift_en,         // shift every 8-bits - from QSPI
     output logic [15:0]           rdata_spi,        // data bus - to Q-SPI
     output logic                  fifo_rd_en_next   // read next row - to FIFO
@@ -56,21 +61,38 @@ module fifo_intf #(parameter DWIDTH=136, DEPTH=16) (
     //TODO: there may be a 1 cycle delay here - THERE IS A GLITCH!!!
 
     integer i;
+    // always @* begin
+
+    //     rdata_spi[15:8] = 8'd0;
+    //     rdata_spi[7:0]  = 8'd0;
+        
+    //     if (fifo_shift_count < 8) begin
+    //         for (i = 0; i < 8; i = i + 1) begin
+    //             // rdata_spi[8+i] = rdata_fifo[ptr_1-i];
+    //             // rdata_spi[i]  = rdata_fifo[ptr_2-i];
+    //             rdata_spi[15:8] = rdata_fifo[ptr_1 -: 8]; //properly addressed
+    //             rdata_spi[7:0]  = rdata_fifo[ptr_2 -: 8]; //I'm wrong, oopsie :)
+    //         end
+    //     end else if (fifo_shift_count == 8) begin
+    //         // address phase: repeat 8-bit addr on both halves
+    //         rdata_spi[15:8] = rdata_fifo[7:0];
+    //         rdata_spi[7:0]  = rdata_fifo[7:0];
+    //     end
+
+    //     //TODO: error handling here?
+    // end
+
     always @* begin
         if (fifo_shift_count < 8) begin
-            for (i = 0; i < 8; i = i + 1) begin
-                // rdata_spi[8+i] = rdata_fifo[ptr_1-i];
-                // rdata_spi[i]  = rdata_fifo[ptr_2-i];
-                rdata_spi[15:8] = rdata_fifo[ptr_1 -: 8]; //properly addressed
-                rdata_spi[7:0]  = rdata_fifo[ptr_2 -: 8]; //I'm wrong, oopsie :)
-            end
+            rdata_spi[15:8] = rdata_fifo[ptr_1 -: 8];
+            rdata_spi[7:0]  = rdata_fifo[ptr_2 -: 8];
         end else if (fifo_shift_count == 8) begin
-            // address phase: repeat 8-bit addr on both halves
             rdata_spi[15:8] = rdata_fifo[7:0];
             rdata_spi[7:0]  = rdata_fifo[7:0];
+        end else begin
+            // Default assignment to avoid latch inference (important!)
+            rdata_spi = 16'd0;
         end
-
-        //TODO: error handling here?
     end
 
 endmodule : fifo_intf
