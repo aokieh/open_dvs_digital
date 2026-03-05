@@ -40,3 +40,10 @@ results.xml
 **/*.log**
 
 **/*.nfs*
+
+# Additional Xcelium / Simvision artifacts
+**/*.shm/
+**/*.history
+**/*.key
+**/.simvision/
+**/restore.tcl*
