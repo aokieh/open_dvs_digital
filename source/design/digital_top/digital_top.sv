@@ -36,11 +36,11 @@ module digital_top (
 
 
     // Memory Interface
-    logic                  we;
-    logic [`RF_AWIDTH-1:0] addr;
-    logic [ `RF_WIDTH-1:0] wdata;
-    logic [  `RF_MASK-1:0] wmask;
-    logic [ `RF_WIDTH-1:0] rdata;
+    logic                  we_reg;
+    logic [`RF_AWIDTH-1:0] addr_reg;
+    logic [ `RF_WIDTH-1:0] wdata_reg;
+    logic [  `RF_MASK-1:0] wmask_reg;
+    logic [ `RF_WIDTH-1:0] rdata_reg;
 
     // FIFO registers
     // logic                    fifo_rst_n;
@@ -79,61 +79,116 @@ module digital_top (
     //---------------------------------------------------
     // SPI Peripheral
     //---------------------------------------------------
+    // spi_peripheral i_spi_peripheral (
+    //     .CS_N,
+    //     .SCK,
+    //     .COPI,
+    //     .CIPO,
+        
+    //     .addr_reg(addr_reg),
+    //     .we_reg(we_reg),
+    //     .we_out_reg(we_out_reg),       //TODO: remove, set as test wire for debug
+    //     .wdata_reg(wdata_reg),
+    //     .wmask_reg(wmask_reg),
+    //     .rdata_reg(rdata_reg)
+    // );
     spi_peripheral i_spi_peripheral (
         .CS_N,
         .SCK,
         .COPI,
         .CIPO,
         
-        .addr,
-        .we,
-        .we_out,       //TODO: remove, set as test wire for debug
-        .wdata,
-        .wmask,
-        .rdata
-    );
+        .addr_reg(addr_reg),
+        .we_reg(we_reg),
+        .we_out(we_out),       //TODO: remove, set as test wire for debug
+        .wdata_reg(wdata_reg),
+        .wmask_reg(wmask_reg),
+        .rdata_reg(rdata_reg)
+    );    
 
 
     //---------------------------------------------------
     // Register File
     //---------------------------------------------------
+    // regfile i_regfile (
+    //     .clk,
+    //     .rst_n,
+
+    //     // Memory Interface
+    //     .we_reg(we_reg),
+    //     .addr_reg(addr_reg),
+    //     .wdata_reg(wdata_reg),
+    //     .wmask_reg(wmask_reg),
+    //     .rdata_reg(rdata_reg),
+        
+    //     // FIFO
+    //     .fifo_rst_n(),
+    //     .fifo_rd_en(),
+    //     .fifo_numel(),
+        
+    //     // IRQ
+    //     .irq_deassert_thresh(),
+    //     .irq_assert_thresh(),
+        
+    //     // DAC
+    //     .dac_config_0(),
+    //     .dac_config_1(),
+    //     .dac_config_2(),
+    //     .dac_config_3(),
+
+    //     .dac_config_4(),
+    //     .dac_config_5(),
+    //     .dac_config_6(),
+    //     .dac_config_7(),
+
+    //     //ADDED PORTS -- testing top level IO. remove later
+    //     .bias_0(),              //added code - testing yosys flow    
+    //     .bias_1(),
+    //     .bias_2(),
+    //     .bias_3(),
+    //     .event_rate()         //added code
+    // );
+
+//---------------------------------------------------
+    // Register File
+    //---------------------------------------------------
     regfile i_regfile (
-        .clk,
-        .rst_n,
+        .clk   (clk),
+        .rst_n (rst_n),
 
         // Memory Interface
-        .we,
-        .addr,
-        .wdata,
-        .wmask,
-        .rdata,
+        .we_reg    (we_reg),
+        .addr_reg  (addr_reg),
+        .wdata_reg (wdata_reg),
+        .wmask_reg (wmask_reg),
+        .rdata_reg (rdata_reg),
         
         // FIFO
-        .fifo_rst_n,
-        .fifo_rd_en,
-        .fifo_numel,
+        .fifo_rst_n_reg (fifo_rst_n),
+        .fifo_rd_en_reg (fifo_rd_en),
+        .fifo_numel_reg (fifo_numel),
         
         // IRQ
-        .irq_deassert_thresh,
-        .irq_assert_thresh,
+        .irq_deassert_thresh_reg (irq_deassert_thresh),
+        .irq_assert_thresh_reg   (irq_assert_thresh),
         
         // DAC
-        .dac_config_0,
-        .dac_config_1,
-        .dac_config_2,
-        .dac_config_3,
+        .dac_config_0 (dac_config_0),
+        .dac_config_1 (dac_config_1),
+        .dac_config_2 (dac_config_2),
+        .dac_config_3 (dac_config_3),
+        .dac_config_4 (dac_config_4),
+        .dac_config_5 (dac_config_5),
+        .dac_config_6 (dac_config_6),
+        .dac_config_7 (dac_config_7),
 
-        .dac_config_4,
-        .dac_config_5,
-        .dac_config_6,
-        .dac_config_7,
-
-        //ADDED PORTS -- testing top level IO. remove later
-        .bias_0,              //added code - testing yosys flow    
-        .bias_1,
-        .bias_2,
-        .bias_3,
-        .event_rate         //added code
+        // ADDED PORTS -- testing top level IO. remove later
+        .bias_0 (bias_0),
+        .bias_1 (bias_1),
+        .bias_2 (bias_2),
+        .bias_3 (bias_3),
+        
+        .event_rate_reg (event_rate) 
     );
 
 endmodule : digital_top

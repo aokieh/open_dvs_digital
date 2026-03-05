@@ -1,0 +1,6 @@
+#e1(04Mar2026:00:54:26): source ./xcelium.d/env.d/env.history.04Mar2026_00_54_26
+s1(04Mar2026:00:54:26):  xrun -64bit -timescale 1ns/1ps +gui +access+rwc -sv -DUNIT_DELAY -DFUNCTIONAL +define+USE_POWER_PINS +nospecify +nowarnNODNTW -f ../scripts/xrun.f 
+#e2(04Mar2026:00:59:00): source ./xcelium.d/env.d/env.history.04Mar2026_00_59_00
+s2(04Mar2026:00:59:00):  xrun -64bit -timescale 1ns/1ps +gui +access+rwc -sv -DUNIT_DELAY -DFUNCTIONAL +define+USE_POWER_PINS +nospecify +nowarnNODNTW -f ../scripts/xrun.f "-s " 
+#e3(04Mar2026:01:04:51): source ./xcelium.d/env.d/env.history.04Mar2026_01_04_51
+s3(04Mar2026:01:04:51):  xrun -64bit -timescale 1ns/1ps +gui +access+rwc -sv -DUNIT_DELAY -DFUNCTIONAL +define+USE_POWER_PINS +nospecify +nowarnNODNTW -f ../scripts/xrun.f 

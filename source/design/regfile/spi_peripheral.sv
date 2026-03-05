@@ -73,25 +73,6 @@ module spi_peripheral (
     logic       en_fifo_read;
 
     // TODO - Count bits being transmitted.
-    // Used to decode opcode, addr_reg, and data
-    // always_ff @(posedge SCK, posedge CS_N) begin
-    //     if (CS_N) begin
-    //         cycle_count <= '0;
-    //     end else begin
-    //         // Increment count if chip select is asserted
-    //         cycle_count <= cycle_count + 1'b1;
-
-    //         if(cycle_count <= 4'd15 && opcode_valid == 3'b111) begin
-    //             if (cycle_count == 4'd14) begin
-    //                 shift_en_fifo <= 2'b11;
-    //                 fifo_shift_count <= fifo_shift_count + 4'd1;
-    //             end
-    //         end
-
-    //     end
-    // end
-
-
     //--- Counter Logic ---//
 always_ff @(posedge SCK or posedge CS_N) begin
     if (CS_N) begin
@@ -134,7 +115,7 @@ end
         en_rx_opcode      = (cycle_count <= 7);  // opcode is across CH0
         en_rx_addr        = (cycle_count <= 7);  // addr_reg is across CH1
         en_rx_rdata       = (cycle_count >= 8 && 
-                            cycle_count <= 14 && //TODO: glitch here <=15?
+                            cycle_count <= 15 && //TODO: glitch here <=15?
                             !en_regfile_write &&
                             !en_fifo_read);  // rx_data flag from opcode
         
@@ -196,58 +177,7 @@ end
     //---------------------------------------------------
     // SPI TX data to Controller on falling edge
     //---------------------------------------------------
-    // always_ff @(negedge SCK, posedge CS_N) begin
-    //     if (CS_N) begin
-    //         // Don't transmit when chip select is released
-    //         CIPO[3:0] <= 4'd0;
-    //         fifo_shift_count <= 4'd0;
-    //         shift_en_fifo <= 2'b00;
-    //         fifo_tx_cycle_count <= '0;
-    //     end else begin //sending out read data MSB down to LSB
-            
-    //         if (en_tx_fifo_opcode || en_tx_fifo_data ) begin
-    //             fifo_tx_cycle_count <= fifo_tx_cycle_count + 1;
-    //             shift_en_fifo <= 2'b00;
-    //         end           
-
-    //         if (opcode_valid[2] == 0 && cycle_count > 7) begin
-    //             if (cycle_count <= 15) begin
-    //                 CIPO[3] <= tx_data_3[15-(cycle_count)];
-    //                 CIPO[2] <= tx_data_2[15-(cycle_count)];
-    //                 CIPO[1] <= tx_data_1[15-(cycle_count)];
-    //                 CIPO[0] <= tx_data_0[15-(cycle_count)];
-    //             end
-    //         end
-
-    //         // else if (opcode_valid == 3'b111 && fifo_tx_cycle_count > 4'd7) begin  // we need to send 8-bits, 9-times to use same architecture
-    //         else if (en_tx_fifo_data) begin     // we need to send 8-bits, 9-times to use same architecture
-    //             if (fifo_tx_cycle_count <= 4'd15) begin
-    //                 CIPO[3] <= tx_data_3[15-(fifo_tx_cycle_count)];
-    //                 CIPO[2] <= tx_data_2[15-(fifo_tx_cycle_count)];
-    //                 CIPO[1] <= tx_data_1[15-(fifo_tx_cycle_count)];
-    //                 CIPO[0] <= tx_data_0[15-(fifo_tx_cycle_count)];
-                
-    //                 //shift one cycle early, to pre-load data? There's a reg in intf
-    //                 if (fifo_tx_cycle_count == 4'd14 && fifo_shift_count < 4'd9) begin
-    //                     shift_en_fifo <= 2'b11;
-    //                     fifo_shift_count <= fifo_shift_count + 4'd1;
-    //                     fifo_tx_cycle_count <= 4'd8; // needs to reset to index the byte properly 
-    //                 end else if (fifo_shift_count == 4'd9)  begin //this goes from 0-8 then resets, 9 total?
-    //                     shift_en_fifo <= 2'b00;
-    //                     fifo_shift_count <= 4'd0;
-    //                 end if (fifo_tx_cycle_count == 4'd15 && fifo_shift_count < 4'd9) begin
-    //                     fifo_tx_cycle_count <= 4'd8; //resetting to lower bound for bit assigning
-    //                 end
-
-    //             end else begin
-    //                 // not needed since signals are taken care of in rst?
-    //                 CIPO[3:0] <= 4'd0;
-    //             end
-    //         end
-    //     end
-    // end
-
-    always_ff @(negedge SCK, posedge CS_N) begin
+    always_ff @(posedge SCK, posedge CS_N) begin
         if (CS_N) begin
             // Don't transmit when chip select is released
             CIPO[3:0] <= 4'd0;
@@ -271,7 +201,7 @@ end
     //---------------------------------------------------
     
     //Write sampled data to memory (falling edge)
-    always_ff @(negedge SCK, posedge CS_N) begin
+    always_ff @(posedge SCK, posedge CS_N) begin
         if (CS_N) begin
             // Don't write to mem when chip select is released
             we_reg <= '0;

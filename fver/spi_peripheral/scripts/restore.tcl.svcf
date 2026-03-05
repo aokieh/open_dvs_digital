@@ -1,0 +1,168 @@
+# SimVision Command Script (Wed Mar 04 01:02:05 AM EST 2026)
+#
+# Version 25.03.s002
+#
+# You can restore this configuration with:
+#
+#      xrun -64bit -timescale 1ns/1ps +gui +access+rwc -sv -DUNIT_DELAY -DFUNCTIONAL +define+USE_POWER_PINS +nospecify +nowarnNODNTW -f ../scripts/xrun.f -s -input /LinuxRAID/home/aokieh1/projects/open_dvs_digital/fver/spi_peripheral/scripts/restore.tcl
+#
+
+
+#
+# Preferences
+#
+preferences set plugin-enable-svdatabrowser-new 1
+preferences set toolbar-txe_waveform_toggle-WaveWindow {
+  usual
+  position -pos 1
+}
+preferences set plugin-enable-groupscope 0
+preferences set plugin-enable-interleaveandcompare 0
+preferences set plugin-enable-waveformfrequencyplot 0
+preferences set toolbar-Windows-WaveWindow {
+  usual
+  position -pos 2
+}
+
+#
+# Simulator
+#
+database require simulator -hints {
+	simulator "xrun -64bit -timescale 1ns/1ps +gui +access+rwc -sv -DUNIT_DELAY -DFUNCTIONAL +define+USE_POWER_PINS +nospecify +nowarnNODNTW -f ../scripts/xrun.f -s -input restore.tcl"
+}
+
+#
+# Mnemonic Maps
+#
+mmap new  -reuse -name {Boolean as Logic} -radix %b -contents {{%c=FALSE -edgepriority 1 -shape low}
+{%c=TRUE -edgepriority 1 -shape high}}
+mmap new  -reuse -name {Example Map} -radix %x -contents {{%b=11???? -bgcolor orange -label REG:%x -linecolor yellow -shape bus}
+{%x=1F -bgcolor red -label ERROR -linecolor white -shape EVENT}
+{%x=2C -bgcolor red -label ERROR -linecolor white -shape EVENT}
+{%x=* -label %x -linecolor gray -shape bus}}
+
+#
+# Design Browser windows
+#
+if {[catch {window new WatchList -name "Design Browser 1" -geometry 730x500+59+71}] != ""} {
+    window geometry "Design Browser 1" 730x500+59+71
+}
+window target "Design Browser 1" on
+browser using {Design Browser 1}
+browser set -scope [subst  {simulator::[format {tb.i_spi_peripheral}]} ]
+browser set \
+    -signalsort name
+browser yview see [subst  {simulator::[format {tb.i_spi_peripheral}]} ]
+browser timecontrol set -lock 0
+
+#
+# Waveform windows
+#
+if {[catch {window new WaveWindow -name "Waveform 1" -geometry 1680x1021+1680+0}] != ""} {
+    window geometry "Waveform 1" 1680x1021+1680+0
+}
+window target "Waveform 1" on
+waveform using {Waveform 1}
+waveform sidebar visibility partial
+waveform set \
+    -primarycursor TimeA \
+    -signalnames name \
+    -signalwidth 175 \
+    -units ns \
+    -valuewidth 75
+waveform baseline set -time 0
+
+set id [waveform add -signals [subst  {
+	{simulator::[format {tb.CIPO[3:0]}]}
+	} ]]
+waveform hierarchy collapse $id
+set id [waveform add -signals [subst  {
+	{simulator::[format {tb.COPI[3:0]}]}
+	} ]]
+set id [waveform add -signals [subst  {
+	{simulator::[format {tb.SCK}]}
+	} ]]
+set id [waveform add -signals [subst  {
+	{simulator::[format {tb.CS_N}]}
+	} ]]
+set id [waveform add -cdivider divider]
+set id [waveform add -signals [subst  {
+	{simulator::[format {tb.i_spi_peripheral.addr_valid[4:0]}]}
+	} ]]
+set id [waveform add -signals [subst  {
+	{simulator::[format {tb.i_spi_peripheral.cycle_count[3:0]}]}
+	} ]]
+waveform format $id -radix %d
+set id [waveform add -signals [subst  {
+	{simulator::[format {tb.i_spi_peripheral.en_rx_addr}]}
+	} ]]
+set id [waveform add -signals [subst  {
+	{simulator::[format {tb.i_spi_peripheral.en_rx_opcode}]}
+	} ]]
+set id [waveform add -signals [subst  {
+	{simulator::[format {tb.i_spi_peripheral.en_rx_rdata}]}
+	} ]]
+set id [waveform add -cdivider divider]
+set id [waveform add -signals [subst  {
+	{simulator::[format {tb.i_spi_peripheral.rx_data_3[6:0]}]}
+	} ]]
+set id [waveform add -signals [subst  {
+	{simulator::[format {tb.i_spi_peripheral.rx_data_0[6:0]}]}
+	} ]]
+set id [waveform add -signals [subst  {
+	{simulator::[format {tb.i_spi_peripheral.rx_data_1[6:0]}]}
+	} ]]
+set id [waveform add -signals [subst  {
+	{simulator::[format {tb.i_spi_peripheral.rx_data_2[6:0]}]}
+	} ]]
+set id [waveform add -signals [subst  {
+	{simulator::[format {tb.we_reg}]}
+	} ]]
+set id [waveform add -signals [subst  {
+	{simulator::[format {tb.i_spi_peripheral.mem_write_next_re}]}
+	} ]]
+set id [waveform add -cdivider divider]
+set id [waveform add -signals [subst  {
+	{simulator::[format {tb.addr_reg[4:0]}]}
+	} ]]
+set id [waveform add -signals [subst  {
+	{simulator::[format {tb.clk}]}
+	} ]]
+set id [waveform add -signals [subst  {
+	{simulator::[format {tb.rdata_reg[31:0]}]}
+	} ]]
+waveform hierarchy collapse $id
+set id [waveform add -signals [subst  {
+	{simulator::[format {tb.rst_n}]}
+	} ]]
+set id [waveform add -signals [subst  {
+	{simulator::[format {tb.shift_en_fifo[1:0]}]}
+	} ]]
+set id [waveform add -signals [subst  {
+	{simulator::[format {tb.spi_ctrl}]}
+	} ]]
+waveform format $id -trace reference
+set id [waveform add -signals [subst  {
+	{simulator::[format {tb.wdata_reg[31:0]}]}
+	} ]]
+set id [waveform add -signals [subst  {
+	{simulator::[format {tb.wmask_reg[3:0]}]}
+	} ]]
+set id [waveform add -cdivider divider]
+
+waveform xview limits 0 852.5ns
+
+#
+# Waveform Window Links
+#
+
+#
+# Console windows
+#
+console set -windowname Console
+window geometry Console 840x977+0+0
+
+#
+# Layout selection
+#
+

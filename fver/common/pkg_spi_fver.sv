@@ -97,7 +97,8 @@ package pkg_spi_fver;
 					spi.COPI[1] = da_1[send_data_size-1-i];
 					spi.COPI[0] = da_0[send_data_size-1-i];
 					#CLK_P_SPI;
-					spi.SCK = 1; //rising edge send in
+					spi.SCK = 1; //rising edge send in & sample
+					#CLK_P_SPI;
 					// rx_bits = {rx_bits[31:0], spi.CIPO};
 					rx_3 = {rx_3[6:0],spi.CIPO[3]};
 					rx_2 = {rx_2[6:0],spi.CIPO[2]};
@@ -109,7 +110,7 @@ package pkg_spi_fver;
 					// 	{rx_1[6:0],spi.CIPO[1]},
 					// 	{rx_0[6:0],spi.CIPO[0]} 
 					// };
-					#CLK_P_SPI;
+					// #CLK_P_SPI;
 					spi.SCK = 0;
 				end
 				$display ("     Da3=%h", rx_3);
@@ -122,6 +123,7 @@ package pkg_spi_fver;
 
 			#CLK_P_SPI;
 			spi.CS_N = 1;
+			spi.COPI = 4'd0;
 			#CLK_P_SPI;
 			$display ("Opcode=%b", op_0);
 			$display ("RX Data=%h  , Addr=%d", rx_bits, ad_0);

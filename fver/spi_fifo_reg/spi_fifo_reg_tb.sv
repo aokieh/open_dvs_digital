@@ -56,7 +56,7 @@ module tb ();
     end
 
     // DUT instantiation
-    spi_fifo_regfile  #(DWIDTH, DEPTH) i_spi_fifo_regfile(
+    spi_fifo_regfile i_spi_fifo_regfile(
         //Global Signals
         .SCK(SCK),
         .clk(clk),
