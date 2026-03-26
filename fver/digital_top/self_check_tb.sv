@@ -3,7 +3,7 @@ import pkg_spi_fver::*;
 
 module tb ();
 
-    localparam CLK_P = 25ns;
+    localparam CLK_P = 20ns;
     localparam DEPTH = 8;
     localparam DEASSERT_THRESH = 11;
     localparam ASSERT_THRESH   = 789;
@@ -86,11 +86,14 @@ module tb ();
         .dac_config_5(dac_configs[5]),
         .dac_config_6(dac_configs[6]),
         .dac_config_7(dac_configs[7]),
-        .irq_assert_thresh(irq_assert_thresh),
-        .irq_deassert_thresh(irq_deassert_thresh),
-        .fifo_numel        (fifo_numel),
-        .fifo_rd_en        (fifo_rd_en),
-        .fifo_rst_n        (fifo_rst_n)
+        .irq_assert_thresh_reg(irq_assert_thresh),
+        .irq_deassert_thresh_reg(irq_deassert_thresh),
+        .fifo_numel_reg        (fifo_numel),
+        .fifo_rd_en_reg        (fifo_rd_en),
+        .fifo_rst_n_reg        (fifo_rst_n),
+        .shift_en_fifo(),
+        .rdata_spi_0(),
+        .rdata_spi_1()
     );
 
     // ---------------- Tasks and Verification Sequences ------------------
@@ -141,10 +144,10 @@ module tb ();
         end
     endtask
 
-    task automatic write_dacs_seq();
+    task automatic write_dacs_seq(input logic [11:0] val);
         for (int i = 0; i < 10; i++) begin
-            spi_ctrl.trans(WRITE_HW, i*2 + 20, 'h5aa + i);
-            dac_write_data[i] = 'h5aa + i;
+            spi_ctrl.trans(WRITE_HW, i*2 + 20, val+i);
+            dac_write_data[i] = val + i;
             #CLK_P;
         end
     endtask
@@ -185,7 +188,7 @@ module tb ();
         //local sdf folder
         
                 // For corner: max_ff_n40C_1v95
-        $sdf_annotate("/home/aokieh1/projects/digital_top_hardened_macro/openlane/digital_top/runs/antenna_clean/final/sdf/max_ff_n40C_1v95/digital_top__max_ff_n40C_1v95.sdf", i_digital_top);
+        // $sdf_annotate("/home/aokieh1/projects/digital_top_hardened_macro/openlane/digital_top/runs/antenna_clean/final/sdf/max_ff_n40C_1v95/digital_top__max_ff_n40C_1v95.sdf", i_digital_top);
         
                 // For corner: max_ss_100C_1v60
         // $sdf_annotate("/home/aokieh1/projects/digital_top_hardened_macro/openlane/digital_top/runs/antenna_clean/final/sdf/max_ss_100C_1v60/digital_top__max_ss_100C_1v60.sdf", i_digital_top);
@@ -234,9 +237,15 @@ module tb ();
         #500ns;
 
         // ---------------- Write sequence data -------------------
-        write_dacs_seq();
+        write_dacs_seq('h5aa);
         write_biases(4'ha, 0, 0);              // starts A, increments
         set_irq('h2AA, 'h2AA, 0);
+        #500ns;
+
+        // ---------------- Write sequence data -------------------
+        write_dacs_seq('hfaa);
+        write_biases(4'hf, 0, 0);              // starts F, increments
+        set_irq('h0CC, 'h1DD, 0);
         #500ns;
 
         // ---------------- Read and dump comparison --------------

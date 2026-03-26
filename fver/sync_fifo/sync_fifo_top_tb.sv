@@ -29,7 +29,7 @@ module tb();
     logic [4:0] clk_cycle_cnt;  // count to 7, reset (8 total)
     logic [4:0] shift_cnt;      // count to 8, reset (9 total)
     // Instantiate the sync_fifo module
-    sync_fifo_top #(FIFO_DWIDTH, FIFO_DEPTH) i_sync_fifo_top (
+    sync_fifo_top i_sync_fifo_top (
         .clk,
         .rst_n,
         .wr_en_fifo,
@@ -158,7 +158,8 @@ module tb();
             wr_en_fifo = 1;
             // wdata = $urandom_range(0, (2**FIFO_DWIDTH)-1);
             // write the fifo_addr number in the last write
-            wdata_fifo = {$urandom(), $urandom(), $urandom(), $urandom(), i[7:0]};
+            // wdata_fifo = {$urandom(), $urandom(), $urandom(), $urandom(), i[7:0]};
+            wdata_fifo = {32'hAAAA_AAAA, 32'hAAAA_AAAA, 32'hBBBB_BBBB, 32'hBBBB_BBBB, i[7:0]};
             // wdata = { $urandom(), $urandom(), $urandom(), $urandom(), $urandom() };
             $display("i = %2d  Writing data = %h", i, wdata_fifo);
 

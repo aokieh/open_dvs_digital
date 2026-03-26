@@ -1,0 +1,95 @@
+//---------------------------------------------------------------------------
+// Author: Ababakar Okieh
+// Date  : March 6th, 2026
+//
+// Module: spi_intf
+//
+// Description: 
+//  Behavioral FIFO intf model for OpenDVS.
+//---------------------------------------------------------------------------
+
+
+module async_spi_intf (
+    `ifdef USE_POWER_PINS
+        inout vccd1, // OpenLane Power  - comment out if needed
+        inout vssd1, // OpenLane Ground - comment out if needed
+    `endif
+    
+    input  logic                  clk,
+    input  logic                  rst_n,
+
+    input logic [   `FIFO_WIDTH-1 : 0] rdata_fifo,       // data bus - from FIFO
+    input logic                   shift_en,         // shift every 8-bits - from QSPI
+    output logic [15:0]           rdata_spi,        // data bus - to Q-SPI
+    output logic                  fifo_rd_en_next   // read next row - to FIFO
+
+    input  logic                   rd_en,
+    output logic [`FIFO_WIDTH_ASYNC-1 : 0] async_rdata_spi
+);
+
+    logic [7:0] ptr_1, ptr_2;
+    logic [3:0] fifo_shift_count;
+
+    // Reading data from FIFO
+    always_ff @(posedge clk, negedge rst_n) begin
+        if (!rst_n) begin   //initiated by Q-SPI, after row read out?
+            ptr_1 <= 8'd135;           // first  tile - intial location
+            ptr_2 <= 8'd71;            // second tile - initial location
+            fifo_shift_count <= 4'd0;  // total of 8 data TX, 1 addr TX (136 bits)
+        end
+        else if (shift_en) begin
+            if (fifo_shift_count < 8) begin  // data shifting case, last one is addr          
+                ptr_1 <= ptr_1 - 8'd8; 
+                ptr_2 <= ptr_2 - 8'd8;
+                fifo_shift_count <= fifo_shift_count + 4'd1;
+            end
+
+            else if (fifo_shift_count == 8) begin //reset for next word
+                ptr_1 <= 8'd135;
+                ptr_2 <= 8'd71;
+                fifo_shift_count <= 4'd0;
+            end
+        end
+    end
+
+
+    // // Next-row read enable - after shift #9 AND 8 shift requested
+    assign fifo_rd_en_next = (fifo_shift_count == 8) && shift_en; 
+    //TODO: there may be a 1 cycle delay here - THERE IS A GLITCH!!!
+
+    integer i;
+    // always @* begin
+
+    //     rdata_spi[15:8] = 8'd0;
+    //     rdata_spi[7:0]  = 8'd0;
+        
+    //     if (fifo_shift_count < 8) begin
+    //         for (i = 0; i < 8; i = i + 1) begin
+    //             // rdata_spi[8+i] = rdata_fifo[ptr_1-i];
+    //             // rdata_spi[i]  = rdata_fifo[ptr_2-i];
+    //             rdata_spi[15:8] = rdata_fifo[ptr_1 -: 8]; //properly addressed
+    //             rdata_spi[7:0]  = rdata_fifo[ptr_2 -: 8]; //I'm wrong, oopsie :)
+    //         end
+    //     end else if (fifo_shift_count == 8) begin
+    //         // address phase: repeat 8-bit addr on both halves
+    //         rdata_spi[15:8] = rdata_fifo[7:0];
+    //         rdata_spi[7:0]  = rdata_fifo[7:0];
+    //     end
+
+    //     //TODO: error handling here?
+    // end
+
+    always @* begin
+        if (fifo_shift_count < 8) begin
+            rdata_spi[15:8] = rdata_fifo[ptr_1 -: 8];
+            rdata_spi[7:0]  = rdata_fifo[ptr_2 -: 8];
+        end else if (fifo_shift_count == 8) begin
+            rdata_spi[15:8] = rdata_fifo[7:0];
+            rdata_spi[7:0]  = rdata_fifo[7:0];
+        end else begin
+            // Default assignment to avoid latch inference (important!)
+            rdata_spi = 16'd0;
+        end
+    end
+
+endmodule : fifo_intf

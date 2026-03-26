@@ -1,3 +1,6 @@
+//------------------------------
+// Regfile Parameters
+//------------------------------
 
 `define CHIP_ID 8'h55
 
@@ -11,12 +14,6 @@
 
 `define LSB_DIV (`RF_WIDTH / 8)
 
-`define FIFO_WIDTH 136
-
-`define FIFO_DEPTH 10
-
-`define FIFO_AWIDTH $clog2(`FIFO_DEPTH)
-
 `define DAC_WIDTH 12
 
 `define NUM_DACS  8
@@ -24,3 +21,26 @@
 `define BIAS_WIDTH 24
 
 `define NUM_BIASES  4
+
+//------------------------------
+// Sync FIFO Parameters
+//------------------------------
+
+`define FIFO_WIDTH 136
+
+`define FIFO_DEPTH 10
+
+`define FIFO_AWIDTH $clog2(`FIFO_DEPTH)
+
+//------------------------------
+// Async FIFO Parameters
+//------------------------------
+
+`define FIFO_WIDTH_ASYNC 10
+
+`define FIFO_DEPTH_ASYNC 64 // oversized
+// `define FIFO_DEPTH_ASYNC 32
+// `define FIFO_DEPTH_ASYNC 16 // works fine
+// `define FIFO_DEPTH_ASYNC 10 // undersized
+
+`define FIFO_AWIDTH_ASYNC $clog2(`FIFO_DEPTH_ASYNC)

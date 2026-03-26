@@ -10,6 +10,10 @@
 `timescale 1ns/1ps
 
 module spi_peripheral (
+    `ifdef USE_POWER_PINS
+        inout vccd1, 
+        inout vssd1, 
+    `endif
     // SPI Interface
     input  logic CS_N,
     input  logic SCK,
@@ -28,7 +32,12 @@ module spi_peripheral (
     //FIFO Interface (SPI <---> FIFO)
     input  logic [15:0] rdata_spi_0,
     input  logic [15:0] rdata_spi_1,
-    output logic [1:0] shift_en_fifo
+    output logic [1:0] shift_en_fifo,
+
+    // FIFO Interface (SPI <---> 4x FIFOs)
+    input  logic [ 9:0] fifo_rdata_0, fifo_rdata_1, fifo_rdata_2, fifo_rdata_3,
+    input  logic        fifo_empty_0, fifo_empty_1, fifo_empty_2, fifo_empty_3,
+    output logic        fifo_rd_en_0, fifo_rd_en_1, fifo_rd_en_2, fifo_rd_en_3
 );
 
     // Two 8-bit transmissions per channel - cycle 1 is op/addr_reg, cycle 2 all data
@@ -71,6 +80,17 @@ module spi_peripheral (
     logic       en_tx_fifo_data;
     logic       en_regfile_write;
     logic       en_fifo_read;
+
+    // FIFO Read control - data from ASYNC -> readout
+    logic [ 9:0] fifo_readout_0_data;
+    logic [ 9:0] fifo_readout_1_data;
+    logic [ 9:0] fifo_readout_2_data;
+    logic [ 9:0] fifo_readout_3_data;
+
+    // FIFO Interface (SPI <---> 4x FIFOs)
+    // input  logic [ 9:0] fifo_rdata_0, fifo_rdata_1, fifo_rdata_2, fifo_rdata_3,
+    // input  logic        fifo_empty_0, fifo_empty_1, fifo_empty_2, fifo_empty_3,
+    // output logic        fifo_rd_en_0, fifo_rd_en_1, fifo_rd_en_2, fifo_rd_en_3
 
     // TODO - Count bits being transmitted.
     // Used to decode opcode, addr_reg, and data
@@ -134,8 +154,8 @@ end
         en_rx_opcode      = (cycle_count <= 7);  // opcode is across CH0
         en_rx_addr        = (cycle_count <= 7);  // addr_reg is across CH1
         en_rx_rdata       = (cycle_count >= 8 && 
-                            cycle_count <= 14 && //TODO: glitch here <=15?
-                            !en_regfile_write &&
+                            cycle_count <= 14 && //TODO: glitch here <=15? 
+                            !en_regfile_write && //TODO: broken
                             !en_fifo_read);  // rx_data flag from opcode
         
         opcode_valid = opcode_0[2:0];

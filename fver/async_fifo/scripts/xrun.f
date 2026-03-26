@@ -13,9 +13,9 @@
 
 
 # Design file
-../../../source/design/sync_fifo/sync_fifo.sv
-../../../source/design/sync_fifo/fifo_intf.sv
-../../../source/design/sync_fifo/sync_fifo_top.sv
+../../../source/design/async_fifo/async_fifo.sv
+../../../source/design/async_fifo/async_fifo_top.sv
+../../../source/design/async_fifo/async_write_intf.sv
 
 # Testbench DUT file
-../sync_fifo_top_tb.sv
+../async_fifo_top_tb.sv
