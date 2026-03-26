@@ -38,9 +38,9 @@
 
 `define FIFO_WIDTH_ASYNC 10
 
-`define FIFO_DEPTH_ASYNC 64 // oversized
+`define FIFO_DEPTH_ASYNC 64 // a bit large
 // `define FIFO_DEPTH_ASYNC 32
 // `define FIFO_DEPTH_ASYNC 16 // works fine
-// `define FIFO_DEPTH_ASYNC 10 // undersized
+// `define FIFO_DEPTH_ASYNC 10 // undersized, power of 2 plz
 
 `define FIFO_AWIDTH_ASYNC $clog2(`FIFO_DEPTH_ASYNC)
