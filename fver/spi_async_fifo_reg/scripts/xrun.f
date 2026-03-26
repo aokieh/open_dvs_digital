@@ -22,7 +22,7 @@
 
     # SPI, Register file
     ../../../source/design/regfile/regfile.sv
-    ../../../source/design/regfile/spi_peripheral2.sv
+    ../../../source/design/regfile/spi_peripheral_cr.sv
 
 # Top level wrapper
 ../../../source/design/spi_async_fifo_reg/spi_async_fifo_regfile.sv

@@ -2,14 +2,14 @@
 // Author: Ababakar Okieh
 // Date  : March 23, 2026
 //
-// Module: spi_peripheral2
+// Module: spi_peripheral_cr
 //
 // Description: 
 //  Package that defines Quad-SPI communication.
 //---------------------------------------------------------------------------
 `timescale 1ns/1ps
 
-module spi_peripheral2 (
+module spi_peripheral_cr (
     `ifdef USE_POWER_PINS
         inout vccd1, 
         inout vssd1, 
@@ -260,4 +260,4 @@ module spi_peripheral2 (
         endcase
     end
 
-endmodule : spi_peripheral2
+endmodule : spi_peripheral_cr

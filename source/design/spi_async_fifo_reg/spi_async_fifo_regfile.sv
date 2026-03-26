@@ -64,7 +64,7 @@ module spi_async_fifo_regfile (
     //---------------------------------------------------
 
     // 1. SPI Peripheral State Machine
-    spi_peripheral2 i_spi_peripheral (
+    spi_peripheral_cr i_spi_peripheral (
         `ifdef USE_POWER_PINS .vccd1(vccd1), .vssd1(vssd1), `endif
         .CS_N(CS_N), .SCK(SCK), .COPI(COPI), .CIPO(CIPO),
         
