@@ -125,11 +125,6 @@ module spi_peripheral_cr (
                             cycle_count >= 8 && 
                             cycle_count <= 17);
         
-        en_tx_fifo_opcode = (cycle_count <= 7);
-        
-        en_tx_fifo_data   = (opcode_valid == 3'b111 
-                        && cycle_count >= 8 && cycle_count <= 15);
-        
         mem_write_next_re = determine_write_next_re(opcode_valid, cycle_count);
         addr_valid   = {addr_0[4:0]};
     end
