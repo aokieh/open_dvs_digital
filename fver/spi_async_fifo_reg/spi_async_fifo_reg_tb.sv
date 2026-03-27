@@ -397,7 +397,7 @@ module tb();
             
             // THREAD 2: Imager Event Generation
             begin
-                write_async_imager_frames(65, 78); //200.5 ns
+                write_async_imager_frames(65, 198); //200.5 ns
             end
         join
 
