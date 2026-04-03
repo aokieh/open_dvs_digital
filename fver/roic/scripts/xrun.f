@@ -1,0 +1,36 @@
+# PDK specific cell library and design primitives
+// -v /LinuxRAID/home/aokieh1/projects/digital_top_hardened_macro/dependencies/pdks/sky130A/libs.ref/sky130_fd_sc_hd/verilog/sky130_fd_sc_hd.v
+// -v /LinuxRAID/home/aokieh1/projects/digital_top_hardened_macro/dependencies/pdks/sky130A/libs.ref/sky130_fd_sc_hd/verilog/primitives.v
+
+# Netlist of synthesized design
+// /tmp/aokieh1/openlane_test/caravel_user/openlane/sync_fifo/runs/26_01_30_12_21/final/pnl/sync_fifo.pnl.v
+
+# contains helper class for tb spi instruction set
+../../common/pkg_spi_fver.sv
+
+# contains values for regfile macros, data sizes
+../../../source/design/common/defines.sv
+
+
+# FIFO files
+// ../../../source/design/sync_fifo/sync_fifo_top2.sv
+// ../../../source/design/sync_fifo/sync_fifo.sv
+// ../../../source/design/sync_fifo/fifo_intf2.sv
+
+# Testbench & DUT files for clk divider
+// ../../../source/design/roic/clk_div.sv
+// ../clk_div_tb.sv
+
+# Testbench & DUT files for ROIC FSM
+// ../../../source/design/roic/roic_sm.sv
+// ../roic_sm_tb.sv
+
+../../../source/design/roic/roic_sm2.sv
+../roic_sm2_tb.sv
+
+# Testbench & DUT files for ROIC Top
+// ../../../source/design/roic/roic_top.sv
+// ../../../source/design/roic/roic_sm.sv
+// ../../../source/design/roic/clk_div.sv
+// ../../../source/design/roic/row_scanner.sv
+// ../roic_top_tb.sv

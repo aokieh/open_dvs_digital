@@ -28,7 +28,7 @@
 
 `define FIFO_WIDTH 136
 
-`define FIFO_DEPTH 10
+`define FIFO_DEPTH 16
 
 `define FIFO_AWIDTH $clog2(`FIFO_DEPTH)
 
