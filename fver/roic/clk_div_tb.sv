@@ -1,4 +1,6 @@
 //---------------------------------------------------------------------------
+// Author:  Ababakar Okieh
+// Date: March 30th, 2026
 // Module: clk_div_tb
 // Description: 
 //  Self-checking testbench for the corrected 500ns-base clock divider.

@@ -12,11 +12,6 @@
 ../../../source/design/common/defines.sv
 
 
-# FIFO files
-// ../../../source/design/sync_fifo/sync_fifo_top2.sv
-// ../../../source/design/sync_fifo/sync_fifo.sv
-// ../../../source/design/sync_fifo/fifo_intf2.sv
-
 # Testbench & DUT files for clk divider
 // ../../../source/design/roic/clk_div.sv
 // ../clk_div_tb.sv
@@ -25,12 +20,10 @@
 // ../../../source/design/roic/roic_sm.sv
 // ../roic_sm_tb.sv
 
-../../../source/design/roic/roic_sm2.sv
-../roic_sm2_tb.sv
 
 # Testbench & DUT files for ROIC Top
-// ../../../source/design/roic/roic_top.sv
-// ../../../source/design/roic/roic_sm.sv
-// ../../../source/design/roic/clk_div.sv
-// ../../../source/design/roic/row_scanner.sv
-// ../roic_top_tb.sv
+../../../source/design/roic/roic_top.sv
+../../../source/design/roic/roic_sm.sv
+../../../source/design/roic/row_scanner.sv
+../../../source/design/roic/col_event_rst.sv
+../roic_top_tb.sv

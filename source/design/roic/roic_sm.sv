@@ -8,303 +8,231 @@
 //  Behavioral roic state machine model for OpenDVS.
 //---------------------------------------------------------------------------
 
-// module roic_sm (
-//     `ifdef USE_POWER_PINS
-//         inout vccd1, // OpenLane Power  
-//         inout vssd1, // OpenLane Ground 
-//     `endif
-    
-//     input  logic                  div_clk,
-//     input  logic                  rst_n,
-
-//     // Control signal to determine FSM activity
-//     input  logic                  sm_enable,
-
-//     output logic                  on_detect,
-//     output logic                  off_detect,
-//     output logic                  pixel_rst,
-//     output logic [5:0]            row_addr
-// );
-
-//     logic [5:0] row_ctr; // Removed inline initialization to prevent multiple-driver errors
-//     assign row_addr = row_ctr; 
-
-//     // 2-bit register to track our 3 states
-//     logic [1:0] state;
-
-//     always_ff @(posedge div_clk or negedge rst_n) begin
-//         if (!rst_n) begin
-//             pixel_rst   <= 1'b0;
-//             off_detect  <= 1'b0;
-//             on_detect   <= 1'b0;
-//             state       <= 2'd0;
-//             row_ctr     <= 6'd0;
-//         end
-//         else begin
-//             if (sm_enable) begin
-                
-//                 // NEW LOGIC: Increment the row counter ONLY when exiting the reset phase
-//                 if (pixel_rst) begin
-//                     row_ctr <= row_ctr + 6'd1;
-//                 end
-
-//                 case (state)
-//                     2'd0: begin // 1.) First rising edge
-//                         on_detect   <= 1'b1;
-//                         off_detect  <= 1'b0;
-//                         pixel_rst   <= 1'b0;
-//                         state       <= 2'd1;
-//                     end
-                    
-//                     2'd1: begin // 2.) Second rising edge
-//                         on_detect   <= 1'b0;
-//                         off_detect  <= 1'b1;
-//                         pixel_rst   <= 1'b0;
-//                         state       <= 2'd2;
-//                     end
-                    
-//                     2'd2: begin // 3.) Third rising edge
-//                         on_detect   <= 1'b0;
-//                         off_detect  <= 1'b0;
-//                         pixel_rst   <= 1'b1;
-//                         state       <= 2'd0; 
-//                         // Removed row_ctr increment from here
-//                     end
-                    
-//                     default: begin // Failsafe
-//                         on_detect   <= 1'b0;
-//                         off_detect  <= 1'b0;
-//                         pixel_rst   <= 1'b0;
-//                         state       <= 2'd0;
-//                         row_ctr     <= 6'd0;
-//                     end
-//                 endcase
-//             end else begin
-//                 // When disabled, clear outputs and reset the sequence to the start
-//                 on_detect   <= 1'b0;
-//                 off_detect  <= 1'b0;
-//                 pixel_rst   <= 1'b0;
-//                 state       <= 2'd0;
-//                 row_ctr     <= 6'd0;
-//             end
-//         end
-//     end
-
-// endmodule : roic_sm
-
-//---------------------------------------------------------------------------
-// Module: roic_sm
-// Description: 
-//  5-State ROIC State Machine for Analog Pixel Array Readout.
-//  Sequence: PreCharge1 -> OnDetect -> PreCharge2 -> OffDetect -> PixelRst
-//---------------------------------------------------------------------------
-
-// module roic_sm (
-//     `ifdef USE_POWER_PINS
-//         inout vccd1, // OpenLane Power  
-//         inout vssd1, // OpenLane Ground 
-//     `endif
-    
-//     input  logic                  div_clk,
-//     input  logic                  rst_n,
-
-//     // Control signal to determine FSM activity
-//     input  logic                  sm_enable,
-//     input  logic                  pre_charge_valid,
-
-//     // Analog Array Control Pulses
-//     output logic                  pre_charge,
-//     output logic                  on_detect,
-//     output logic                  off_detect,
-//     output logic                  pixel_rst,
-//     output logic                  pre_charge_global
-    
-//     // Digital Backend Control
-//     output logic                  sm_next_row, // Triggers the row_scanner
-//     output logic [5:0]            row_addr     // Tags data in the sync_fifo
-// );
-
-//     logic [5:0] row_ctr; 
-//     assign row_addr = row_ctr; 
-
-//     // Expanded to 3 bits to hold 5 states (0 to 4)
-//     logic [2:0] state;
-
-//     always_ff @(posedge div_clk or negedge rst_n) begin
-//         if (!rst_n) begin
-//             pre_charge  <= 1'b0;
-//             on_detect   <= 1'b0;
-//             off_detect  <= 1'b0;
-//             pixel_rst   <= 1'b0;
-//             sm_next_row <= 1'b0;
-//             state       <= 3'd0;
-//             row_ctr     <= 6'd0;
-//         end
-//         else begin
-//             if (sm_enable) begin
-                
-//                 // Increment the row counter ONLY when exiting the reset phase
-//                 if (pixel_rst) begin
-//                     row_ctr <= row_ctr + 6'd1;
-//                 end
-
-//                 if (pre_charge_valid == 1'b1 && state == (2'd0 || 2'd1)) begin
-//                     pre_charge_global <= 1'd1;
-//                 end else begin
-//                     pre_charge_global <= 1'd0;
-//                 end
-
-//                 case (state)
-//                     2'd0: begin // 1.) RST state
-//                         pixel_rst   <= 1'b1;
-//                         on_detect   <= 1'b0;
-//                         off_detect  <= 1'b0;
-//                         sm_next_row <= 1'b1;
-//                         state       <= 2'd1;
-//                     end
-                    
-//                     2'd1: begin // 2.) ON detect state
-//                         on_detect   <= 1'b1;
-//                         pixel_rst   <= 1'b0;
-//                         sm_next_row <= 1'b0;
-//                         state       <= 2'd2;
-//                     end
-                    
-//                     2'd2: begin // 3.) OFF detect state
-//                         on_detect   <= 1'b0;
-//                         off_detect  <= 1'b1;
-//                         state       <= 2'd0;
-//                     end
-                    
-//                     default: begin // Failsafe
-//                         pre_charge  <= 1'b0;
-//                         on_detect   <= 1'b0;
-//                         off_detect  <= 1'b0;
-//                         pixel_rst   <= 1'b0;
-//                         sm_next_row <= 1'b0;
-//                         state       <= 3'd0;
-//                         row_ctr     <= 6'd0;
-//                     end
-//                 endcase
-//             end else begin
-//                 // When disabled, immediately kill all analog pulses and reset tracking
-//                 pre_charge  <= 1'b0;
-//                 on_detect   <= 1'b0;
-//                 off_detect  <= 1'b0;
-//                 pixel_rst   <= 1'b0;
-//                 sm_next_row <= 1'b0;
-//                 state       <= 3'd0;
-//                 row_ctr     <= 6'd0;
-//             end
-//         end
-//     end
-
-// endmodule : roic_sm
 
 module roic_sm (
     `ifdef USE_POWER_PINS
-        inout vccd1, // OpenLane Power  
-        inout vssd1, // OpenLane Ground 
+        inout vccd1, 
+        inout vssd1, 
     `endif
     
-    input  logic                  div_clk,
-    input  logic                  rst_n,
-    input  logic                  sm_enable,
-
-    input  logic                  eval_phase,
-    input  logic                  pre_charge_phase,
+    input  logic        sys_clk,      
+    input  logic        rst_n,
+    input  logic        sm_enable,    
+    input  logic [7:0]  program_bits, 
 
     // Phase-Gated Analog Pulses
-    output logic                  pre_charge_global,
-    output logic                  on_detect,
-    output logic                  off_detect,
-    output logic                  pixel_rst,
-
-    output logic                  is_on_state,
-    output logic                  is_off_state,
+    output logic        pre_charge_global, // Active LOW
+    output logic        on_detect,
+    output logic        off_detect,
+    output logic        detect_pulse,      // Mid-read column trigger
+    output logic        pixel_rst,
     
     // Digital Backend Control
-    output logic                  sm_next_row, 
-    output logic [5:0]            row_addr     
+    output logic        sm_next_row, 
+    output logic [5:0]  row_addr,
+    output logic        fifo_wr_en,
+    output logic [1:0]  event_flag    
 );
 
-    logic [5:0] row_ctr; 
+    // -----------------------------------------------------------------
+    // TIMING PARAMETERS (50MHz = 20ns per tick)
+    // -----------------------------------------------------------------
+    parameter P_PRE_CHARGE = 4;  // 80ns (Active Low)
+    parameter P_BUFFER     = 4;  // 80ns
+    parameter P_DETECT     = 4;  // 80ns (Goes high mid-read)
+    parameter P_ON_DETECT  = 8;  // 160ns
+    parameter P_OFF_DETECT = 8;  // 160ns
+    parameter P_RST        = 25; // 500ns 
+
+    // -----------------------------------------------------------------
+    // TARGET & OVERHEAD CALCULATION (Exact Subtraction)
+    // -----------------------------------------------------------------
+    logic [13:0] target_ticks;
+    assign target_ticks = (program_bits == 8'd0) ? 14'd12800 : program_bits * 14'd50;
+
+    logic [13:0] wait_on_ticks;
+    logic [13:0] wait_off_ticks;
+    logic [13:0] wait_rst_ticks;
+    logic [13:0] wait_next_ticks;
+
+    assign wait_on_ticks   = target_ticks - (P_PRE_CHARGE + P_BUFFER) + 14'd1;
+    assign wait_off_ticks  = target_ticks - (P_ON_DETECT + P_PRE_CHARGE + P_BUFFER);
+    assign wait_rst_ticks  = target_ticks - (P_OFF_DETECT + P_BUFFER);
+    assign wait_next_ticks = target_ticks - (P_RST + 1 + P_PRE_CHARGE + P_BUFFER);
+
+    // -----------------------------------------------------------------
+    // INTERNAL REGISTERS & STATE
+    // -----------------------------------------------------------------
+    localparam [3:0]
+        ST_IDLE      = 4'd0,
+        ST_WAIT_ON   = 4'd1,
+        ST_PRE_1     = 4'd2,
+        ST_BUF_1     = 4'd3,
+        ST_ON_DET    = 4'd4,
+        ST_WAIT_OFF  = 4'd5,
+        ST_PRE_2     = 4'd6,
+        ST_BUF_2     = 4'd7,
+        ST_OFF_DET   = 4'd8,
+        ST_WAIT_RST  = 4'd9,
+        ST_BUF_3     = 4'd10,
+        ST_PIX_RST   = 4'd11,
+        ST_NEXT_ROW  = 4'd12,
+        ST_WAIT_NEXT = 4'd13;
+        
+    logic [3:0]  state;
+    logic [5:0]  row_ctr;
+    logic [4:0]  phase_ctr; 
+    logic [13:0] wait_ctr;  
+
     assign row_addr = row_ctr; 
 
-    // Expanded to 4 states: 0=IDLE, 1=ON, 2=OFF, 3=RST
-    logic [1:0] state;
-
     // -----------------------------------------------------------------
-    // DIGITAL DATA PLANE (Ungated, continuous state for the FIFO)
+    // COMBINATIONAL OUTPUTS (Zero-Latency, Short STA Paths)
     // -----------------------------------------------------------------
-    assign is_on_state  = sm_enable && (state == 2'd1);
-    assign is_off_state = sm_enable && (state == 2'd2);
-    
-    // -----------------------------------------------------------------
-    // COMBINATIONAL PHASE GATING (Break-Before-Make Safe)
-    // -----------------------------------------------------------------
+    // These derive directly from the state register and phase_ctr.
+    // The logic depth is minimal (just a few gates), keeping STA happy
+    // while guaranteeing zero clock cycle lag when entering states.
     always_comb begin
-        // Default everything to safe 0
-        pre_charge_global = 1'b0;
-        on_detect         = 1'b0;
-        off_detect        = 1'b0;
-        pixel_rst         = 1'b0;
-
-        if (pre_charge_phase) begin
-            // LOW PHASE: Safely inside the Pre-Charge window
-            pre_charge_global = 1'b1;
-        end 
-        else if (eval_phase && sm_enable) begin
-            // HIGH PHASE & ENABLED: Safely inside the Evaluate window
-            case (state)
-                2'd1: on_detect  = 1'b1;
-                2'd2: off_detect = 1'b1;
-                2'd3: pixel_rst  = 1'b1;
-                default: ; // State 0 (IDLE) stays safely quiet
-            endcase
+        if (!sm_enable) begin
+            pre_charge_global = 1'b1; // Inactive HIGH
+            on_detect         = 1'b0;
+            off_detect        = 1'b0;
+            pixel_rst         = 1'b0;
+            detect_pulse      = 1'b0;
+        end else begin
+            // Direct state decoding creates very short combinational paths
+            pre_charge_global = ~(state == ST_PRE_1 || state == ST_PRE_2);
+            on_detect         = (state == ST_ON_DET);
+            off_detect        = (state == ST_OFF_DET);
+            pixel_rst         = (state == ST_PIX_RST);
+            
+            // detect_pulse requires a small 5-bit comparator
+            detect_pulse      = ((state == ST_ON_DET)  && (phase_ctr >= (P_ON_DETECT - P_DETECT))) ||
+                                ((state == ST_OFF_DET) && (phase_ctr >= (P_OFF_DETECT - P_DETECT)));
         end
     end
 
     // -----------------------------------------------------------------
-    // SEQUENTIAL STATE TRACKER (Transitions safely on POSEDGE)
+    // SEQUENTIAL ENGINE (State and Counters Only)
     // -----------------------------------------------------------------
-    always_ff @(posedge div_clk or negedge rst_n) begin
+    always_ff @(posedge sys_clk or negedge rst_n) begin
         if (!rst_n) begin
-            state       <= 2'd0; // Reset to IDLE
-            sm_next_row <= 1'b0;
+            state       <= ST_IDLE;
             row_ctr     <= 6'd0;
+            phase_ctr   <= '0;
+            wait_ctr    <= '0;
+            sm_next_row <= 1'b0;
+            fifo_wr_en  <= 1'b0;
+            event_flag  <= 2'b00;
         end
         else begin
             if (sm_enable) begin
+                // Default drops for single-cycle digital flags
+                sm_next_row <= 1'b0;
+                fifo_wr_en  <= 1'b0;
+
                 case (state)
-                    2'd0: begin // IDLE -> ON (First active clock edge)
-                        state       <= 2'd1;
-                        sm_next_row <= 1'b0;
+                    ST_IDLE, ST_WAIT_ON: begin
+                        if (wait_ctr >= wait_on_ticks - 1) begin
+                            wait_ctr <= '0;
+                            state    <= ST_PRE_1;
+                        end else begin
+                            wait_ctr <= wait_ctr + 14'd1;
+                            state    <= ST_WAIT_ON; 
+                        end
                     end
-                    2'd1: begin // ON -> OFF
-                        state       <= 2'd2;
-                        sm_next_row <= 1'b0;
+
+                    ST_PRE_1: begin
+                        if (phase_ctr >= P_PRE_CHARGE - 1) begin
+                            phase_ctr <= '0;
+                            state     <= ST_BUF_1;
+                        end else phase_ctr <= phase_ctr + 5'd1;
                     end
-                    2'd2: begin // OFF -> RST
-                        state       <= 2'd3;
-                        sm_next_row <= 1'b1; // Trigger scanner shift for next posedge
+
+                    ST_BUF_1: begin
+                        if (phase_ctr >= P_BUFFER - 1) begin
+                            phase_ctr <= '0;
+                            state     <= ST_ON_DET;
+                        end else phase_ctr <= phase_ctr + 5'd1;
                     end
-                    2'd3: begin // RST -> ON (Next Row)
-                        state       <= 2'd1;
-                        sm_next_row <= 1'b0;
-                        row_ctr     <= row_ctr + 6'd1;
+
+                    ST_ON_DET: begin
+                        if (phase_ctr >= P_ON_DETECT - 1) begin
+                            phase_ctr  <= '0;
+                            state      <= ST_WAIT_OFF;
+                            fifo_wr_en <= 1'b1; 
+                            event_flag <= 2'b10;
+                        end else phase_ctr <= phase_ctr + 5'd1;
                     end
-                    default: begin 
-                        state       <= 2'd0;
-                        sm_next_row <= 1'b0;
-                        row_ctr     <= 6'd0;
+
+                    ST_WAIT_OFF: begin
+                        if (wait_ctr >= wait_off_ticks - 1) begin
+                            wait_ctr <= '0;
+                            state    <= ST_PRE_2;
+                        end else wait_ctr <= wait_ctr + 14'd1;
+                    end
+
+                    ST_PRE_2: begin
+                        if (phase_ctr >= P_PRE_CHARGE - 1) begin
+                            phase_ctr <= '0;
+                            state     <= ST_BUF_2;
+                        end else phase_ctr <= phase_ctr + 5'd1;
+                    end
+
+                    ST_BUF_2: begin
+                        if (phase_ctr >= P_BUFFER - 1) begin
+                            phase_ctr <= '0;
+                            state     <= ST_OFF_DET;
+                        end else phase_ctr <= phase_ctr + 5'd1;
+                    end
+
+                    ST_OFF_DET: begin
+                        if (phase_ctr >= P_OFF_DETECT - 1) begin
+                            phase_ctr  <= '0;
+                            state      <= ST_WAIT_RST;
+                            fifo_wr_en <= 1'b1; 
+                            event_flag <= 2'b01;
+                        end else phase_ctr <= phase_ctr + 5'd1;
+                    end
+
+                    ST_WAIT_RST: begin 
+                        if (wait_ctr >= wait_rst_ticks - 1) begin
+                            wait_ctr <= '0;
+                            state    <= ST_BUF_3;
+                        end else wait_ctr <= wait_ctr + 14'd1;
+                    end
+
+                    ST_BUF_3: begin
+                        if (phase_ctr >= P_BUFFER - 1) begin
+                            phase_ctr <= '0;
+                            state     <= ST_PIX_RST;
+                        end else phase_ctr <= phase_ctr + 5'd1;
+                    end
+
+                    ST_PIX_RST: begin
+                        if (phase_ctr >= P_RST - 1) begin
+                            phase_ctr   <= '0;
+                            state       <= ST_NEXT_ROW;
+                            sm_next_row <= 1'b1; 
+                        end else phase_ctr <= phase_ctr + 5'd1;
+                    end
+
+                    ST_NEXT_ROW: begin
+                        row_ctr <= row_ctr + 6'd1;
+                        state   <= ST_WAIT_NEXT;
+                    end
+
+                    ST_WAIT_NEXT: begin
+                        if (wait_ctr >= wait_next_ticks - 1) begin
+                            wait_ctr <= '0;
+                            state    <= ST_PRE_1; 
+                        end else wait_ctr <= wait_ctr + 14'd1;
                     end
                 endcase
             end else begin
-                // Paused - maintain current operation ENTIRELY
-                state       <= state;
-                sm_next_row <= sm_next_row;
-                row_ctr     <= row_ctr;
+                // Safely pause the system digital flags
+                fifo_wr_en  <= 1'b0;
+                sm_next_row <= 1'b0;
             end
         end
     end

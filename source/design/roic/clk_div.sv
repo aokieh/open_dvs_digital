@@ -8,53 +8,6 @@
 //  Behavioral clock divider model for OpenDVS.
 //---------------------------------------------------------------------------
 
-// module clk_div (
-//     `ifdef USE_POWER_PINS
-//         inout vccd1, // OpenLane Power  
-//         inout vssd1, // OpenLane Ground 
-//     `endif
-    
-//     input  logic        sys_clk,
-//     input  logic        rst_n,
-    
-//     // 8-bit input: Sets the FULL PERIOD from 1us to 256us
-//     input  logic [7:0]  program_bits,
-//     output logic        div_clk
-// );
-
-//     logic [4:0] tick_25;     
-//     logic [7:0] half_us_ctr;
-
-//     // Explicitly define the target count to keep linters happy
-//     logic [7:0] target_count;
-//     assign target_count = (program_bits == 8'd0) ? 8'd255 : (program_bits - 8'd1);
-
-//     always_ff @(posedge sys_clk or negedge rst_n) begin
-//         if (!rst_n) begin
-//             tick_25     <= '0;
-//             half_us_ctr <= '0;
-//             div_clk     <= 1'b0;
-//         end
-//         else begin
-//             if (tick_25 < 5'd24) begin
-//                 tick_25 <= tick_25 + 5'd1;
-//             end 
-//             else begin
-//                 tick_25 <= '0;
-
-//                 if (half_us_ctr < target_count) begin
-//                     half_us_ctr <= half_us_ctr + 8'd1;
-//                 end 
-//                 else begin
-//                     half_us_ctr <= '0;
-//                     div_clk     <= ~div_clk; // Toggle 50% duty cycle                 
-//                 end
-//             end
-//         end
-//     end
-
-// endmodule : clk_div
-
 module clk_div (
     `ifdef USE_POWER_PINS
         inout vccd1, // OpenLane Power  
