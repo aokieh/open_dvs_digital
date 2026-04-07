@@ -2,7 +2,7 @@
 // Module: roic_top_tb
 // Description: 
 //  Self-checking system testbench for the Phase-Gated ROIC Top Level.
-//  Sweeps full 64-row frames across 1us, 32us, and 256us speeds.
+//  Sweeps full 64-row frames and captures outputs to a file for Python reconstruction.
 //---------------------------------------------------------------------------
 
 `timescale 1ns/1ps
@@ -27,6 +27,10 @@ module roic_top_tb();
     logic        fifo_wr_en;
     logic [1:0]  event_flag;
 
+    // --- File I/O & Memory ---
+    logic [63:0] img_mem [0:127]; // Holds the 128 rows of Python generated Hex
+    integer      fd;              // File descriptor for output log
+
     // DUT Instantiation
     roic_top i_dut (
         .sys_clk           (sys_clk),
@@ -48,11 +52,34 @@ module roic_top_tb();
     // 50MHz Clock Generation
     always #(SYS_CLK_PERIOD_NS / 2) sys_clk = ~sys_clk;
 
+    // -----------------------------------------------------------------
+    // Backend FIFO Monitor (Logs to File on Write Enable)
+    // -----------------------------------------------------------------
+    always @(posedge sys_clk) begin
+        if (rst_n && fifo_wr_en) begin
+            // 2-bit event_flag + 64-bit array_col_out = 66 bits (max 17 hex chars)
+            $fdisplay(fd, "%017x", {event_flag, array_col_out});
+        end
+    end
+
     initial begin
         $display("==================================================");
         $display("Starting Intent-Based FULL ROIC System TB");
         $display("Testing Timing Deltas, Latching, and State Flow");
         $display("==================================================");
+
+        // Load input image data - Circle
+        // $readmemh("/LinuxRAID/home/aokieh1/projects/open_dvs_digital/fver/roic/python/imager_test_data.hex", img_mem);
+
+        // Load input image data - Papa Andreas :)
+        $readmemh("/LinuxRAID/home/aokieh1/projects/open_dvs_digital/fver/roic/python/papa_test_data.hex", img_mem);
+
+        // Open file to log the backend captures
+        fd = $fopen("/LinuxRAID/home/aokieh1/projects/open_dvs_digital/fver/roic/python/sim_output.txt", "w");
+        if (fd == 0) begin
+            $display("[FATAL ERROR] Could not open sim_output.txt for writing!");
+            $stop;
+        end
 
         // --- TEST 1: Fastest Clock (1us) ---
         test_speed("Fast Mode (1us)", 8'd1);
@@ -60,14 +87,15 @@ module roic_top_tb();
         // --- TEST 2: Medium Clock (32us) ---
         test_speed("Extended Mode (32us)", 8'd32);
 
-        // --- TEST 2: Medium Clock (256us) ---
+        // --- TEST 3: Slow Clock (256us) ---
         test_speed("Extended Mode (256us)", 8'd0);
 
         $display("\n==================================================");
         $display("ALL SPEEDS, DATAPATHS, AND TIMING DELTAS PASSED!");
-        $display("Simulation Complete.");
+        $display("Simulation Complete. Output written to sim_output.txt");
         $display("==================================================");
         
+        $fclose(fd);
         $finish;
     end
 
@@ -123,9 +151,9 @@ module roic_top_tb();
             bit verbose = (r == 0 || r == 31 || r == 63);
             if (verbose) $display("\n  --- Sweeping Row %0d ---", r);
 
-            // Generate pseudo-random test data for this row
-            test_on_data  = {32'hAAAA_0000, 32'hBBBB_1111} ^ r;
-            test_off_data = {32'h5555_2222, 32'h4444_3333} ^ r;
+            // Fetch the image data from memory (Row 0 ON is index 0, Row 0 OFF is index 1, etc.)
+            test_on_data  = img_mem[r * 2];
+            test_off_data = img_mem[(r * 2) + 1];
 
             // -------------------------------------------------------------
             // 1. Wait for ON_DETECT 
@@ -142,7 +170,11 @@ module roic_top_tb();
             if (verbose) $display("  -> [PASS] ON_DETECT delta: %0d ns", actual_delta);
             
             ref_time = event_time; // Update rolling reference
-            array_col_out = test_on_data; // Feed analog bus
+            
+            // Feed the physical bus. This gives the continuous synchronizer 
+            // inside col_event_rst ample time to safely latch the data 
+            // before the FSM detect_pulse fires.
+            array_col_out = test_on_data; 
 
             // -------------------------------------------------------------
             // 2. Wait for OFF_DETECT
