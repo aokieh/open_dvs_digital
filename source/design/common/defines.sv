@@ -22,6 +22,12 @@
 
 `define NUM_BIASES  4
 
+
+//------------------------------
+// Array size parameters
+//------------------------------
+`define IMAGER_COL_WIDTH 128
+
 //------------------------------
 // Sync FIFO Parameters
 //------------------------------

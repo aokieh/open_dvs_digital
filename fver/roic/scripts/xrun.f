@@ -26,4 +26,5 @@
 ../../../source/design/roic/roic_sm.sv
 ../../../source/design/roic/row_scanner.sv
 ../../../source/design/roic/col_event_rst.sv
-../roic_top_tb.sv
+../roic_top_tb_128.sv
+// ../roic_top_tb_64.sv

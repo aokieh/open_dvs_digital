@@ -21,22 +21,22 @@ module col_event_rst (
     input  logic        sm_detect_pulse,      // Mid-read column trigger
 
     // Data FROM the Pixel Array
-    input  logic [63:0] array_col_out, 
+    input  logic [`IMAGER_COL_WIDTH-1:0] array_col_out, 
 
     // Output TO the Pixel Array
-    output logic [63:0] col_pixel_rst
+    output logic [`IMAGER_COL_WIDTH-1:0] col_pixel_rst
 );
 
     // -----------------------------------------------------------------
     // 1. Continuously Running Bus Synchronizer
     // -----------------------------------------------------------------
-    logic [63:0] col_out_m1;
-    logic [63:0] col_out_m2;
+    logic [`IMAGER_COL_WIDTH-1:0] col_out_m1;
+    logic [`IMAGER_COL_WIDTH-1:0] col_out_m2;
 
     always_ff @(posedge div_clk or negedge rst_n) begin
         if (!rst_n) begin
-            col_out_m1 <= 64'd0;
-            col_out_m2 <= 64'd0;
+            col_out_m1 <= 128'd0;
+            col_out_m2 <= 128'd0;
         end else begin
             // This runs EVERY cycle. Metastability resolves here safely.
             col_out_m1 <= array_col_out;
@@ -47,20 +47,20 @@ module col_event_rst (
     // -----------------------------------------------------------------
     // 2. Gated Latching & Logic
     // -----------------------------------------------------------------
-    logic [63:0] on_pixels_reg;
-    logic [63:0] off_pixels_reg;
+    logic [`IMAGER_COL_WIDTH-1:0] on_pixels_reg;
+    logic [`IMAGER_COL_WIDTH-1:0] off_pixels_reg;
 
     always_ff @(posedge div_clk or negedge rst_n) begin
         if (!rst_n) begin
-            on_pixels_reg  <= 64'd0;
-            off_pixels_reg <= 64'd0;
-            col_pixel_rst  <= 64'd0;
+            on_pixels_reg  <= 128'd0;
+            off_pixels_reg <= 128'd0;
+            col_pixel_rst  <= 128'd0;
         end else begin
             // A. The Defensive Clear
             // Wipe the registers when moving to a new row
             if (sm_next_row) begin
-                on_pixels_reg  <= 64'd0;
-                off_pixels_reg <= 64'd0;
+                on_pixels_reg  <= 128'd0;
+                off_pixels_reg <= 128'd0;
             end 
             else begin
                 // B. Capture ON events from the clean, synchronized bus
@@ -78,7 +78,7 @@ module col_event_rst (
             if (sm_pixel_rst) begin
                 col_pixel_rst <= on_pixels_reg | off_pixels_reg;
             end else begin
-                col_pixel_rst <= 64'd0;
+                col_pixel_rst <= 128'd0;
             end
         end
     end

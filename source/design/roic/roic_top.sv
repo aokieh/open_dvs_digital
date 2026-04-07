@@ -24,7 +24,7 @@ module roic_top (
     input  logic [7:0]  program_bits, // Sets state duration
 
     // Data FROM the Pixel Array
-    input  logic [63:0] array_col_out, 
+    input  logic [`IMAGER_COL_WIDTH-1:0] array_col_out, 
 
     // Analog Array Control Plane (Rows)
     output logic        pre_charge_global, // Active LOW
@@ -34,13 +34,13 @@ module roic_top (
     // output logic [63:0] row_sel,
 
     // Analog Array Control Plane (Columns)
-    output logic [63:0] col_pixel_rst,
+    output logic [`IMAGER_COL_WIDTH-1:0] col_pixel_rst,
 
     // Digital Backend Data Plane (To FIFOs)
     output logic [5:0]  row_addr,    // Binary tag for the FIFO data
     output logic        fifo_wr_en,  // Automatically triggers on Read phases
-    output logic [1:0]  event_flag   // 2'b10 = ON Event, 2'b01 = OFF Event
-    // output logic [`FIFO_WIDTH-1:0] wdata_to_fifo  TODO: add later
+    output logic [1:0]  event_flag,   // 2'b10 = ON Event, 2'b01 = OFF Event
+    output logic [`FIFO_WIDTH-1:0] wdata_to_fifo  //TODO: add later
 );
 
     // -----------------------------------------------------------------
@@ -51,9 +51,9 @@ module roic_top (
     logic                   sm_detect_pulse;
     logic                   sm_pixel_rst;
     logic                   sm_next_row;
-    // logic [`FIFO_WIDTH-1:0] evt_to_fifo;
+    logic [`FIFO_WIDTH-1:0] evt_to_fifo;
 
-    // assign evt_to_fifo = {array_col_out, event_flag, row_addr}; TODO: add later
+    assign evt_to_fifo = {array_col_out, event_flag, row_addr}; //TODO: add later
 
     // -----------------------------------------------------------------
     // 1. Continuous Pacing Micro-Sequencer
