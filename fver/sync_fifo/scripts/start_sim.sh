@@ -10,7 +10,6 @@ xrun -64bit \
      +define+USE_POWER_PINS \
      +nospecify \
      +nowarnNODNTW \
-     -f ../scripts/xrun.f \
-     -input sync_fifo_top.tcl
+     -f ../scripts/xrun.f
      # -input self_check.tcl
 

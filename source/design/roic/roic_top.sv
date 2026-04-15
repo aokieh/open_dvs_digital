@@ -113,7 +113,10 @@ module roic_top (
     // -----------------------------------------------------------------
     col_event_rst i_col_event_rst (
         // Note: No OpenLane power pins declared in this module's signature
-        
+        `ifdef USE_POWER_PINS
+            .vccd1          (vccd1),
+            .vssd1          (vssd1),
+        `endif
         // [UPDATED] Driven directly by sys_clk
         .div_clk          (sys_clk),     
         .rst_n            (rst_n),

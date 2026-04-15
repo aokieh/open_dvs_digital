@@ -30,8 +30,8 @@
 ../roic_top_tb_64.sv
 
 # Testbench & DUT files for ROIC Top - Ryan analog test files
-// ../../../source/design/roic/roic_top0.sv
-// ../../../source/design/roic/roic_sm0.sv
-// ../../../source/design/roic/row_scanner0.sv
-// ../../../source/design/roic/col_event_rst0.sv
+// ../../../source/design/roic/roic_top_2x1.sv
+// ../../../source/design/roic/roic_sm_2x1.sv
+// ../../../source/design/roic/row_scanner_2x1.sv
+// ../../../source/design/roic/col_event_rst_2x1.sv
 // ../roic_top_tb_2x1.sv

@@ -14,8 +14,9 @@
 
 # Design file
 ../../../source/design/sync_fifo/sync_fifo.sv
-../../../source/design/sync_fifo/fifo_intf.sv
-../../../source/design/sync_fifo/sync_fifo_top.sv
+../../../source/design/sync_fifo/fifo_intf3.sv
+../../../source/design/sync_fifo/sync_fifo_top3.sv
 
 # Testbench DUT file
-../sync_fifo_top_tb.sv
+// ../sync_fifo_top_tb.sv
+../sync_fifo_top3_tb.sv

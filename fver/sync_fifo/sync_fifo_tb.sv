@@ -27,7 +27,7 @@ module sync_fifo_tb();
 
 
     // Instantiate the sync_fifo module
-    sync_fifo #(FIFO_DWIDTH, FIFO_DEPTH) i_fifo (
+    sync_fifo i_fifo (
         .clk,
         .rst_n,
         .wr_en,

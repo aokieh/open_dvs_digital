@@ -10,6 +10,12 @@
 
 
 module col_event_rst (
+    
+    `ifdef USE_POWER_PINS
+        inout vccd1, // OpenLane Power
+        inout vssd1, // OpenLane Ground
+    `endif
+
     input  logic        div_clk,
     input  logic        rst_n,
 
