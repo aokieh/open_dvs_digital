@@ -53,6 +53,7 @@ module col_readout_macro (
     // -----------------------------------------------------------------
     // 1. Continuously Running Bus Synchronizer (Metastability Shield)
     // -----------------------------------------------------------------
+    //TODO: add metastability reg prefix for synthesizer
     logic [63:0] col_left_m1, col_left_m2;
     logic [63:0] col_right_m1, col_right_m2;
 

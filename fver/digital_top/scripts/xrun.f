@@ -13,7 +13,7 @@
 
 
 # Design file
-../../../source/design/digital_top/digital_top.sv
+../../../source/design/final_macros/digital_top.sv
 ../../../source/design/regfile/regfile.sv
 ../../../source/design/regfile/spi_peripheral.sv
 

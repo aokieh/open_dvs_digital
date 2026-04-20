@@ -20,7 +20,7 @@ xrun -64bit \
      +nospecify \
      +nowarnNODNTW \
      -f ../scripts/xrun.f \
-     -input self_check.tcl
+     # -input self_check.tcl
 
 #    -v /LinuxRAID/home/aokieh1/projects/digital_top_hardened_macro/dependencies/pdks/sky130A/libs.ref/sky130_fd_sc_hd/verilog/sky130_fd_sc_hd.v
     

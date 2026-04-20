@@ -34,10 +34,13 @@ module spi_peripheral (
     input  logic [15:0] rdata_spi_1,
     output logic [1:0] shift_en_fifo,
 
+    // Added for SPI Continuous Read Mode
+    input logic data_ready_spi  // TODO: added port for data safety
+
     // FIFO Interface (SPI <---> 4x FIFOs)
-    input  logic [ 9:0] fifo_rdata_0, fifo_rdata_1, fifo_rdata_2, fifo_rdata_3,
-    input  logic        fifo_empty_0, fifo_empty_1, fifo_empty_2, fifo_empty_3,
-    output logic        fifo_rd_en_0, fifo_rd_en_1, fifo_rd_en_2, fifo_rd_en_3
+    // input  logic [ 9:0] fifo_rdata_0, fifo_rdata_1, fifo_rdata_2, fifo_rdata_3,
+    // input  logic        fifo_empty_0, fifo_empty_1, fifo_empty_2, fifo_empty_3,
+    // output logic        fifo_rd_en_0, fifo_rd_en_1, fifo_rd_en_2, fifo_rd_en_3
 );
 
     // Two 8-bit transmissions per channel - cycle 1 is op/addr_reg, cycle 2 all data
@@ -127,7 +130,14 @@ always_ff @(posedge SCK or posedge CS_N) begin
                 shift_en_fifo <= 2'b00;
             end else if (cycle_count == 4'd14) begin
                 // Load next FIFO value so it's ready for the next cycle (cycle 15)
-                shift_en_fifo <= 2'b11;
+                // shift_en_fifo <= 2'b11;
+                
+                // THE FIX: Only pop the FIFO if data is actually ready!
+                if (data_ready_spi) begin
+                    shift_en_fifo <= 2'b11;
+                end else begin
+                    shift_en_fifo <= 2'b00;
+                end
                 cycle_count <= cycle_count + 1;   // To 15
             end else if (cycle_count == 4'd15) begin
                 shift_en_fifo <= 2'b00;
@@ -137,7 +147,8 @@ always_ff @(posedge SCK or posedge CS_N) begin
 
             // After 9 bursts, reset everything for next transaction
             if (fifo_shift_count == 8 && cycle_count == 15) begin
-                cycle_count <= 0;         // Next CS_N low: fresh transaction
+                // cycle_count <= 0;         // Next CS_N low: fresh transaction
+                cycle_count <= 4'd8;         // TODO: True continuous read mode
                 fifo_shift_count <= 0;
             end
         end else begin
@@ -326,7 +337,8 @@ end
             3'b001  : spi_tx_data[0+:16] = rdata_reg[8*(addr_valid[1:0])+:16];
             3'b010  : spi_tx_data 		  = rdata_reg;
 
-            3'b111  : spi_tx_data 		  = {rdata_spi_1, rdata_spi_0}; // TODO: read from FIFO
+            // 3'b111  : spi_tx_data 		  = {rdata_spi_1, rdata_spi_0}; // TODO: read from FIFO
+            3'b111  : spi_tx_data        = data_ready_spi ? {rdata_spi_1, rdata_spi_0} : 32'hFFFF_FFFF;
             default : spi_tx_data		  = 32'd0;
         endcase
         // assigning the readout data from memory

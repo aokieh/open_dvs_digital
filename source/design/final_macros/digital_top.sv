@@ -99,6 +99,10 @@ module digital_top (
     // SPI Peripheral
     //---------------------------------------------------
     spi_peripheral i_spi_peripheral (
+        `ifdef USE_POWER_PINS
+            .vccd1             (vccd1),
+            .vssd1             (vssd1),
+        `endif
         .CS_N,
         .SCK,
         .COPI,
@@ -117,6 +121,12 @@ module digital_top (
     // Register File
     //---------------------------------------------------
     regfile i_regfile(
+
+        `ifdef USE_POWER_PINS
+            .vccd1             (vccd1),
+            .vssd1             (vssd1),
+        `endif
+
         .clk,
         .rst_n,
 

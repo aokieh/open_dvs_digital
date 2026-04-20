@@ -21,6 +21,12 @@
 // ../roic_sm_tb.sv
 
 
+# Testbench & DUT files for Digital Top (SPI Slave + Register File)
+../../../source/design/regfile/regfile.sv
+../../../source/design/regfile/spi_peripheral.sv
+../../../source/design/final_macros/digital_top.sv
+// ../../digital_top/self_check_tb.sv
+
 # Testbench & DUT files for Column Readout Macro (FIFO + Event Reset)
 ../../../source/design/sync_fifo/sync_fifo.sv
 ../../../source/design/sync_fifo/fifo_intf3.sv
@@ -34,7 +40,11 @@
 ../../../source/design/final_macros/row_decoder_macro.sv
 // ../row_decoder_macro_tb.sv
 
-
 # Testbench & DUT files for DVS FSM (Column Readout + Row Decoder)
 ../../../source/design/final_macros/fifo_rows_cols_macro.sv
-../fifo_rows_cols_macro_tb.sv
+../../../source/design/final_macros/final_top.sv
+// ../fifo_rows_cols_macro_tb.sv
+
+# Testbench & DUT for Final Top Level (Col, Row, SPI, Regfile)
+../../../source/design/final_macros/final_top.sv
+../final_top_tb.sv
