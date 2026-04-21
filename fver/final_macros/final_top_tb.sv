@@ -26,9 +26,9 @@ module final_top_tb();
     logic [3:0] CIPO;
 
     // Analog/Peripheral Outputs
-    logic [23:0] bias_0, bias_1, bias_2, bias_3;
-    logic [11:0] dac_config_0, dac_config_1, dac_config_2, dac_config_3;
-    logic [11:0] dac_config_4, dac_config_5, dac_config_6, dac_config_7;
+    // logic [23:0] bias_0, bias_1, bias_2, bias_3;
+    logic [`DAC_WIDTH-1:0] dac_config_0, dac_config_1, dac_config_2, dac_config_3, dac_config_4;
+    logic [`DAC_WIDTH-1:0]  dac_config_5, dac_config_6, dac_config_7, dac_config_8, dac_config_9;
 
     // Analog Array Interfaces
     logic [63:0] array_col_top_left = '0, array_col_top_right = '0;
@@ -40,7 +40,7 @@ module final_top_tb();
     logic [63:0] row_on_detect_bot,       row_off_detect_bot;
 
     logic sm_enable = 0;
-    logic [7:0] program_bits = 8'd1; 
+    logic [7:0] program_bits = 8'd1;
     logic data_ready;
 
     // logic data_ready_top;
@@ -62,15 +62,16 @@ module final_top_tb();
         .clk                     (clk),
         .rst_n                   (rst_n),
         .CS_N                    (CS_N),
-        .SCK                     (clk),  
+        // .SCK                     (clk),  
         .COPI                    (COPI),
         .CIPO                    (CIPO),
 
-        .bias_0(bias_0), .bias_1(bias_1), .bias_2(bias_2), .bias_3(bias_3),
+        // .bias_0(bias_0), .bias_1(bias_1), .bias_2(bias_2), .bias_3(bias_3),
         .dac_config_0(dac_config_0), .dac_config_1(dac_config_1), 
         .dac_config_2(dac_config_2), .dac_config_3(dac_config_3),
         .dac_config_4(dac_config_4), .dac_config_5(dac_config_5), 
         .dac_config_6(dac_config_6), .dac_config_7(dac_config_7),
+        .dac_config_8(dac_config_8), .dac_config_9(dac_config_9),
 
         .array_col_top_left      (array_col_top_left),
         .array_col_top_right     (array_col_top_right),
@@ -91,8 +92,8 @@ module final_top_tb();
         .data_ready_top          (data_ready),
         // .data_ready_top          (data_ready_top),
         // .data_ready_bot          (data_ready_bot),
-        .sm_enable               (sm_enable),
-        .program_bits            (program_bits)
+        .sm_enable               (sm_enable)
+        // .program_bits            (program_bits)
     );
 
     // Continuous Master Clock
@@ -125,25 +126,25 @@ module final_top_tb();
         pulse_fifo_rst_n(4'hf);
         set_irq(12'hfff, 12'hfff);
         write_dacs(12'hfff);
-        write_biases(4'hf, 1);
+        // write_biases(4'hf, 1);
         #500ns;
 
         // ---------------- Write all zeros -----------------------
         pulse_fifo_rst_n(4'h0);
         set_irq(12'h000, 12'h000);
         write_dacs(12'h000);
-        write_biases(4'h0, 1);
+        // write_biases(4'h0, 1);
         #500ns;
 
         // ---------------- Write sequence data -------------------
         write_dacs_seq(12'h5aa);
-        write_biases(4'ha, 0);              
+        // write_biases(4'ha, 0);              
         set_irq(12'h2AA, 12'h2AA);
         #500ns;
 
         // ---------------- Write sequence data -------------------
         write_dacs_seq(12'hfaa);
-        write_biases(4'hf, 0);              
+        // write_biases(4'hf, 0);              
         set_irq(12'h0CC, 12'h1DD);
         #500ns;
         
@@ -152,6 +153,8 @@ module final_top_tb();
         // -----------------------------------------------------------
         // 2. Start Imager & Continuous Read
         // -----------------------------------------------------------
+        
+        write_event_rate(program_bits);
         $display("\n-> Starting Imager & Streaming QSPI Data...");
         @(posedge clk);
         sm_enable = 1;
@@ -206,7 +209,9 @@ module final_top_tb();
         logic [15:0] bot_chunks[9];
         longint start_t, end_t;
         real frame_rate;
-        int words_read = 0;
+        // int words_read = 0;
+        int words_read;
+        words_read = 0;
 
         // 1. Wait for imager to start
         wait(sm_enable == 1);
@@ -321,6 +326,13 @@ module final_top_tb();
             bias_write_data[i] = bias_val;
             $display("Bias[%0d] write = %06h", i, bias_val);
         end
+    endtask
+
+    task automatic write_event_rate(input logic [7:0] prg_val);
+        // Write the 8-bit value to byte address 108
+        // We pad the top 24 bits with 0s to make a full 32-bit Q-SPI word write
+        qspi_write_word(8'd108, {24'd0, prg_val});
+        $display("Event Rate (program_bits) configured to = %02h", prg_val);
     endtask
 
     // -----------------------------------------------------------------

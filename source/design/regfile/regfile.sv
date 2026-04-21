@@ -63,6 +63,8 @@ module regfile (
     output logic [`DAC_WIDTH-1:0] dac_config_5,
     output logic [`DAC_WIDTH-1:0] dac_config_6,
     output logic [`DAC_WIDTH-1:0] dac_config_7,
+    output logic [`DAC_WIDTH-1:0] dac_config_8,
+    output logic [`DAC_WIDTH-1:0] dac_config_9,
 
     //TEST ADDITIONAL PORTS
     output logic [`BIAS_WIDTH-1:0] bias_0,
@@ -70,7 +72,7 @@ module regfile (
     output logic [`BIAS_WIDTH-1:0] bias_2,
     output logic [`BIAS_WIDTH-1:0] bias_3,
 
-    input logic [9:0] event_rate_reg
+    output logic [7:0] event_rate_reg
 );
     localparam ROW_DIV = $clog2(`LSB_DIV);
     logic [`RF_WIDTH-1:0] mem_in  [`RF_DEPTH];
@@ -88,13 +90,15 @@ module regfile (
     assign dac_config_5 = dac_configs[5];
     assign dac_config_6 = dac_configs[6];
     assign dac_config_7 = dac_configs[7];
+    assign dac_config_8 = dac_configs[8];
+    assign dac_config_9 = dac_configs[9];
 
     //  Biases assignments (Registers <--> Ports)
-    logic [23:0] bias [`NUM_BIASES];
-    assign bias_0 = bias[0];
-    assign bias_1 = bias[1];
-    assign bias_2 = bias[2];
-    assign bias_3 = bias[3];
+    // logic [23:0] bias [`NUM_BIASES];
+    // assign bias_0 = bias[0];
+    // assign bias_1 = bias[1];
+    // assign bias_2 = bias[2];
+    // assign bias_3 = bias[3];
 
     //---------------------------------------------------------------
     // RW/RO Mappings
@@ -126,12 +130,12 @@ module regfile (
 
         // TEST ADDITIONAL SIGNALS
         // biases
-        for (int i = 0; i < `NUM_BIASES; i++) begin
-            `mem_map(bias[i], i*4 + 112) //incrementing 4 bytest per bias
-        end
+        // for (int i = 0; i < `NUM_BIASES; i++) begin
+        //     `mem_map(bias[i], i*4 + 112) //incrementing 4 bytest per bias
+        // end
 
         //INTERNAL EVENT RATE
-        `mem_map_ro(event_rate_reg, 108) //addressing byte 
+        `mem_map(event_rate_reg, 108) //addressing byte 
 
     end
 

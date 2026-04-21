@@ -14,10 +14,10 @@ module digital_top (
     input  logic SCK,
     input  logic [3:0] COPI,
     output logic [3:0] CIPO,
-    output logic [23:0] bias_0,
-    output logic [23:0] bias_1,
-    output logic [23:0] bias_2,
-    output logic [23:0] bias_3,
+    // output logic [23:0] bias_0,
+    // output logic [23:0] bias_1,
+    // output logic [23:0] bias_2,
+    // output logic [23:0] bias_3,
     // Added DAC outputs
     output logic [`DAC_WIDTH-1:0] dac_config_0,
     output logic [`DAC_WIDTH-1:0] dac_config_1,
@@ -28,6 +28,8 @@ module digital_top (
     output logic [`DAC_WIDTH-1:0] dac_config_5,
     output logic [`DAC_WIDTH-1:0] dac_config_6,
     output logic [`DAC_WIDTH-1:0] dac_config_7,
+    output logic [`DAC_WIDTH-1:0] dac_config_8,
+    output logic [`DAC_WIDTH-1:0] dac_config_9,
 
     // TODO: removable signals that we aren't using (at the moment)
     output logic                        we_out,
@@ -37,6 +39,8 @@ module digital_top (
     input  logic [`FIFO_AWIDTH-1:0]     fifo_numel_reg,
     output logic                        fifo_rd_en_reg,
     output logic                        fifo_rst_n_reg,
+
+    output logic [7:0] event_rate_reg,
 
     //FIFO Interface (SPI <---> FIFO)
     input  logic [15:0] rdata_spi_0,
@@ -72,6 +76,9 @@ module digital_top (
     assign dac_config[5] = dac_config_5;
     assign dac_config[6] = dac_config_6;
     assign dac_config[7] = dac_config_7;
+
+    assign dac_config[8] = dac_config_8;
+    assign dac_config[9] = dac_config_9;
     // logic [`DAC_WIDTH-1:0] dac_config_0; 
     // logic [`DAC_WIDTH-1:0] dac_config_1;
     // logic [`DAC_WIDTH-1:0] dac_config_2;
@@ -83,18 +90,18 @@ module digital_top (
     // logic [`DAC_WIDTH-1:0] dac_config_7;
 
     //ADDITIONAL SIGNALS - test registers to test ports
-    logic [23:0] bias [`NUM_BIASES];
-    logic [9:0] event_rate = 10'h3FF; //TODO (remove) gets written to mem[27]
+    // logic [23:0] bias [`NUM_BIASES];
+    // logic [9:0] event_rate = 10'h3FF; //TODO (remove) gets written to mem[27]
 
     // hard wiring the added memory addresses
     // assign bias[0] = 24'hAAA;
     // assign bias[1] = 24'hBBB;
     // assign bias[2] = 24'hCCC;
     // assign bias[3] = 24'hDDD;
-    assign bias[3] = bias_3; // removed for yosys
-    assign bias[2] = bias_2;
-    assign bias[1] = bias_1;
-    assign bias[0] = bias_0;
+    // assign bias[3] = bias_3; // removed for yosys
+    // assign bias[2] = bias_2;
+    // assign bias[1] = bias_1;
+    // assign bias[0] = bias_0;
     //---------------------------------------------------
     // SPI Peripheral
     //---------------------------------------------------
@@ -161,12 +168,12 @@ module digital_top (
         .dac_config_7,
 
         //TEST ADDITIONAL PORTS
-        .bias_0,
-        .bias_1,
-        .bias_2,
-        .bias_3,
+        // .bias_0,
+        // .bias_1,
+        // .bias_2,
+        // .bias_3,
 
-        .event_rate_reg(event_rate)
+        .event_rate_reg
 );
 
 endmodule : digital_top

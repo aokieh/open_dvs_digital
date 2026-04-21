@@ -24,7 +24,7 @@
 # Testbench & DUT files for Digital Top (SPI Slave + Register File)
 ../../../source/design/regfile/regfile.sv
 ../../../source/design/regfile/spi_peripheral.sv
-../../../source/design/final_macros/digital_top.sv
+// ../../../source/design/final_macros/digital_top.sv
 // ../../digital_top/self_check_tb.sv
 
 # Testbench & DUT files for Column Readout Macro (FIFO + Event Reset)

@@ -14,13 +14,13 @@
 
 `define LSB_DIV (`RF_WIDTH / 8)
 
-`define DAC_WIDTH 12
+`define DAC_WIDTH 11
 
-`define NUM_DACS  8
+`define NUM_DACS  10
 
 `define BIAS_WIDTH 24
 
-`define NUM_BIASES  4
+`define NUM_BIASES  0
 
 
 //------------------------------

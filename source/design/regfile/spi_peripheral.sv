@@ -162,6 +162,20 @@ end
 
     // Assert flags for opcode, address, and rx_data
     always_comb begin
+            // 1. DEFAULT ASSIGNMENTS - Prevents Latches and ALWCOMBORDER errors
+        en_rx_opcode      = 1'b0;
+        en_rx_addr        = 1'b0;
+        en_rx_rdata       = 1'b0;
+        opcode_valid      = 3'b000;
+        en_regfile_write  = 1'b0;
+        en_fifo_read      = 1'b0;
+        en_tx_fifo_opcode = 1'b0;
+        en_tx_fifo_data   = 1'b0;
+        mem_write_next_re = 1'b0;
+        addr_valid        = 5'b00000;
+
+        // 2. LOGIC EVALUATION
+
         en_rx_opcode      = (cycle_count <= 7);  // opcode is across CH0
         en_rx_addr        = (cycle_count <= 7);  // addr_reg is across CH1
         en_rx_rdata       = (cycle_count >= 8 && 
