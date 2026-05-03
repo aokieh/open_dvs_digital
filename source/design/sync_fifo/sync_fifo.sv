@@ -42,7 +42,8 @@ module sync_fifo (
     assign full  = (counter == `FIFO_DEPTH);
 
     // Assign numel
-    assign numel = counter;
+    // assign numel = counter;
+    assign numel = counter[`FIFO_AWIDTH-1:0]; //linter warning
 
 
     // Reset FIFO

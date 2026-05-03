@@ -35,30 +35,60 @@ module fifo_intf3 (
 
     logic [1:0] state;
     logic [3:0] shift_ctr;
-    logic [6:0] offset;
+    // logic [6:0] offset;
+    logic [7:0] byte_offset; // <-- YOU MUST ADD THIS LINE
+    assign byte_offset = {2'b00, shift_ctr[2:0], 3'b000};
+    // logic [6:0] offset; //linter warning
 
     // -----------------------------------------------------------------
     // Combinational Data Multiplexer (DATA First, then CTRL)
     // -----------------------------------------------------------------
-    always_comb begin
-        rdata_spi = 16'd0; 
+    // always_comb begin
+    //     rdata_spi = 16'd0; 
 
-        if (!fifo_empty) begin
+    //     if (!fifo_empty) begin
+    //         if (state == ST_SHIFT_CTRL) begin
+    //             // TRANSMISSION 9: Header [135:128]
+    //             rdata_spi[15:8] = rdata_fifo[135:128];
+    //             rdata_spi[7:0]  = rdata_fifo[135:128];
+    //         end 
+    //         else begin
+    //             // TRANSMISSIONS 1-8: Data Streaming LSB -> MSB
+    //             // logic [6:0] offset;
+    //             offset = {shift_ctr[2:0], 3'b000}; 
+                
+    //             // Channel A: Top Macro [127:64]
+    //             rdata_spi[15:8] = rdata_fifo[(7'd64 + offset) +: 8]; 
+    //             // Channel B: Bottom Macro [63:0]
+    //             rdata_spi[7:0]  = rdata_fifo[(7'd0  + offset) +: 8]; 
+    //         end
+    //     end
+    // end
+
+    // -----------------------------------------------------------------
+    // Registered Data Multiplexer (Breaks the critical timing path)
+    // -----------------------------------------------------------------
+    always_ff @(posedge clk or negedge rst_n) begin
+        if (!rst_n) begin
+            rdata_spi <= 16'd0;
+        end 
+        else if (!fifo_empty) begin
             if (state == ST_SHIFT_CTRL) begin
                 // TRANSMISSION 9: Header [135:128]
-                rdata_spi[15:8] = rdata_fifo[135:128];
-                rdata_spi[7:0]  = rdata_fifo[135:128];
+                rdata_spi[15:8] <= rdata_fifo[135:128];
+                rdata_spi[7:0]  <= rdata_fifo[135:128];
             end 
             else begin
                 // TRANSMISSIONS 1-8: Data Streaming LSB -> MSB
-                // logic [6:0] offset;
-                offset = {shift_ctr[2:0], 3'b000}; 
-                
-                // Channel A: Top Macro [127:64]
-                rdata_spi[15:8] = rdata_fifo[(7'd64 + offset) +: 8]; 
-                // Channel B: Bottom Macro [63:0]
-                rdata_spi[7:0]  = rdata_fifo[(7'd0  + offset) +: 8]; 
+                // The slicing logic is now captured directly into a flip-flop
+                // rdata_spi[15:8] <= rdata_fifo[(7'd64 + {shift_ctr[2:0], 3'b000}) +: 8]; 
+                // rdata_spi[7:0]  <= rdata_fifo[(7'd0  + {shift_ctr[2:0], 3'b000}) +: 8];
+                rdata_spi[15:8] <= rdata_fifo[64 + byte_offset +: 8]; // linter warning, 8-bits wide
+                rdata_spi[7:0]  <= rdata_fifo[0  + byte_offset +: 8]; // more readable
             end
+        end
+        else begin
+            rdata_spi <= 16'd0;
         end
     end
 
