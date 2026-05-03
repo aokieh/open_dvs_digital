@@ -4,9 +4,10 @@
 //  Top-level digital integration of the 128x128 split-bitline architecture.
 //  Utilizes a Dual-Spine layout: Independent Row Decoders and Column Readouts 
 //  for the Top and Bottom tiers to maximize parallel throughput.
+//  Upgraded to support 14-bit programmable phase tunings.
 //---------------------------------------------------------------------------
 
-module fifo_rows_cols_macro (
+module fifo_rows_cols_macro2 (
     `ifdef USE_POWER_PINS
         inout vccd1,
         inout vssd1,
@@ -15,9 +16,17 @@ module fifo_rows_cols_macro (
     input  logic         sys_clk,
     input  logic         rst_n,
 
-    // Control Plane (From RegFile) - Shared or Split depending on your RegFile design
+    // Control Plane (From RegFile)
     input  logic         sm_enable,
     input  logic [7:0]   program_bits,
+
+    // Programmable Timing Inputs (14-BIT TUNING)
+    input  logic [13:0]  p_pre_charge,
+    input  logic [13:0]  p_buffer,
+    input  logic [13:0]  p_detect,
+    input  logic [13:0]  p_on_detect,
+    input  logic [13:0]  p_off_detect,
+    input  logic [13:0]  p_rst,
 
     // -----------------------------------------------------------
     // Analog Array Interfaces (128x128 Grid)
@@ -67,7 +76,7 @@ module fifo_rows_cols_macro (
     // -----------------------------------------------------------------
     logic       sm_on_detect_top;
     logic       sm_off_detect_top;
-    logic [1:0] sm_detect_pulse_top; //to analog periphery
+    logic [1:0] sm_detect_pulse_top;
     logic       sm_detect_pulse_top_int;
     logic       sm_pixel_rst_top;
     logic       sm_next_row_top;
@@ -83,7 +92,6 @@ module fifo_rows_cols_macro (
     logic       sm_off_detect_bot;
     logic [1:0] sm_detect_pulse_bot;
     logic       sm_detect_pulse_bot_int;
-
     logic       sm_pixel_rst_bot;
     logic       sm_next_row_bot;
 
@@ -95,7 +103,7 @@ module fifo_rows_cols_macro (
     // TOP TIER INSTANTIATIONS (Rows 0-63)
     // =================================================================
     
-    row_decoder_macro i_row_decoder_top (
+    row_decoder_macro2 i_row_decoder_top (
         `ifdef USE_POWER_PINS
             .vccd1             (vccd1),
             .vssd1             (vssd1),
@@ -105,6 +113,14 @@ module fifo_rows_cols_macro (
         .rst_n             (rst_n),
         .sm_enable         (sm_enable),
         .program_bits      (program_bits),
+
+        // New 14-bit Phase Tunings
+        .p_pre_charge      (p_pre_charge),
+        .p_buffer          (p_buffer),
+        .p_detect          (p_detect),
+        .p_on_detect       (p_on_detect),
+        .p_off_detect      (p_off_detect),
+        .p_rst             (p_rst),
         
         .pre_charge_global (pre_charge_global_top),
         .row_on_detect     (row_on_detect_top),
@@ -120,7 +136,6 @@ module fifo_rows_cols_macro (
         .fifo_wr_en        (fifo_wr_en_top),
         .event_mode        (event_mode_top)
     );
-
 
     assign sm_detect_pulse_top_int = sm_detect_pulse_top[0];
     assign detect_pulse_global_top = sm_detect_pulse_top;
@@ -161,7 +176,7 @@ module fifo_rows_cols_macro (
     // BOTTOM TIER INSTANTIATIONS (Rows 64-127)
     // =================================================================
     
-    row_decoder_macro i_row_decoder_bot (
+    row_decoder_macro2 i_row_decoder_bot (
         `ifdef USE_POWER_PINS
             .vccd1             (vccd1),
             .vssd1             (vssd1),
@@ -171,6 +186,14 @@ module fifo_rows_cols_macro (
         .rst_n             (rst_n),
         .sm_enable         (sm_enable),
         .program_bits      (program_bits),
+
+        // New 14-bit Phase Tunings
+        .p_pre_charge      (p_pre_charge),
+        .p_buffer          (p_buffer),
+        .p_detect          (p_detect),
+        .p_on_detect       (p_on_detect),
+        .p_off_detect      (p_off_detect),
+        .p_rst             (p_rst),
         
         .pre_charge_global (pre_charge_global_bot),
         .row_on_detect     (row_on_detect_bot),
@@ -222,4 +245,4 @@ module fifo_rows_cols_macro (
         .numel_fifo          (numel_fifo_bot)
     );
 
-endmodule : fifo_rows_cols_macro
+endmodule : fifo_rows_cols_macro2

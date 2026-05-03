@@ -43,9 +43,9 @@ module row_scanner (
     
     always_ff @(posedge div_clk or negedge rst_n) begin
         if (!rst_n) begin
-            row_token <= 64'd1; 
+            row_token <= 64'd1;        // Global reset send back to Row [0]
         end 
-        else if (!sm_enable) begin     // [ADDED] Instantly snap back to Row 0 if disabled
+        else if (!sm_enable) begin     // Maintains current location if disabled
             row_token <= row_token;
         end
         else if (sm_next_row) begin

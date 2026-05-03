@@ -1,15 +1,16 @@
 //---------------------------------------------------------------------------
 // Author: Ababakar Okieh
-// Date  : April 4th, 2026
+// Date  : April 27th, 2026
 //
-// Module: row_decoder_macro
+// Module: row_decoder_macro2
 // Description: 
 //  Central spine wrapper for the Phase-Gated Neuromorphic Readout Controller.
 //  Instantiates the 50MHz Micro-Sequencer (FSM) and Row Scanner.
 //  Exports synchronization states to the peripheral column readout macros.
+//  Upgraded to support 14-bit programmable phase tunings.
 //---------------------------------------------------------------------------
 
-module row_decoder_macro (
+module row_decoder_macro2 (
     `ifdef USE_POWER_PINS
         inout vccd1, // OpenLane Power  
         inout vssd1, // OpenLane Ground 
@@ -21,7 +22,15 @@ module row_decoder_macro (
 
     // Control Plane (From RegFile/Processor)
     input  logic        sm_enable,    // Global Enable (Play/Pause)
-    input  logic [7:0]  program_bits, // Sets state duration
+    input  logic [7:0]  program_bits, // Sets macroscopic state duration
+
+    // Programmable Timing Inputs (Ticks) - 14-BIT TUNING
+    input  logic [13:0] p_pre_charge,
+    input  logic [13:0] p_buffer,
+    input  logic [13:0] p_detect,
+    input  logic [13:0] p_on_detect,
+    input  logic [13:0] p_off_detect,
+    input  logic [13:0] p_rst,
 
     // -----------------------------------------------------------
     // Analog Array Control Plane (To Pixel Rows)
@@ -45,20 +54,20 @@ module row_decoder_macro (
     output logic [1:0]  event_mode   // 2'b10 = ON Event, 2'b01 = OFF Event
 );
 
-// -----------------------------------------------------------------
+    // -----------------------------------------------------------------
     // Internal Interconnects & Fanout
     // -----------------------------------------------------------------
     logic int_pre_charge;
     logic int_detect_pulse;
 
     // Explicitly duplicate the 1-bit FSM signals to the 2-bit quadrant buses
-    assign pre_charge_global = {2{int_pre_charge}};
-    assign detect_pulse_global   = {2{int_detect_pulse}};
+    assign pre_charge_global   = {2{int_pre_charge}};
+    assign detect_pulse_global = {2{int_detect_pulse}};
 
     // -----------------------------------------------------------------
-    // 1. Continuous Pacing Micro-Sequencer
+    // 1. Continuous Pacing Micro-Sequencer (14-Bit Upgraded)
     // -----------------------------------------------------------------
-    roic_sm i_roic_sm (
+    roic_sm2 i_roic_sm2 (
         `ifdef USE_POWER_PINS
             .vccd1             (vccd1),
             .vssd1             (vssd1),
@@ -68,6 +77,14 @@ module row_decoder_macro (
         .rst_n             (rst_n),
         .sm_enable         (sm_enable),
         .program_bits      (program_bits),
+
+        // New 14-bit Phase Tunings
+        .p_pre_charge      (p_pre_charge),
+        .p_buffer          (p_buffer),
+        .p_detect          (p_detect),
+        .p_on_detect       (p_on_detect),
+        .p_off_detect      (p_off_detect),
+        .p_rst             (p_rst),
         
         // Analog Pulses (Using internal wires for 2-bit fanout)
         .pre_charge_global (int_pre_charge),
@@ -104,4 +121,4 @@ module row_decoder_macro (
         .row_off_detect (row_off_detect)
     );
 
-endmodule : row_decoder_macro
+endmodule : row_decoder_macro2

@@ -18,20 +18,21 @@
 
 # Testbench & DUT files for ROIC FSM
 // ../../../source/design/roic/roic_sm.sv
+../../../source/design/roic/roic_sm2.sv
 // ../roic_sm_tb.sv
-
+../roic_sm_tb2.sv
 
 # Testbench & DUT files for ROIC Top
-../../../source/design/roic/roic_top.sv
-../../../source/design/roic/roic_sm.sv
-../../../source/design/roic/row_scanner.sv
-../../../source/design/roic/col_event_rst.sv
+// ../../../source/design/roic/roic_top.sv
+// ../../../source/design/roic/roic_sm.sv
+// ../../../source/design/roic/row_scanner.sv
+// ../../../source/design/roic/col_event_rst.sv
 // ../roic_top_tb_128.sv
-../roic_top_tb_64.sv
+// ../roic_top_tb_64.sv
 
 # Testbench & DUT files for ROIC Top - Ryan analog test files
-// ../../../source/design/roic/roic_top_2x1.sv
-// ../../../source/design/roic/roic_sm_2x1.sv
-// ../../../source/design/roic/row_scanner_2x1.sv
-// ../../../source/design/roic/col_event_rst_2x1.sv
-// ../roic_top_tb_2x1.sv
+// ../../../source/design/roic/roic_top_2x2.sv
+// ../../../source/design/roic/roic_sm_2x2.sv
+// ../../../source/design/roic/row_scanner_2x2.sv
+// ../../../source/design/roic/col_event_rst_2x2.sv
+// ../roic_top_tb_2x2.sv

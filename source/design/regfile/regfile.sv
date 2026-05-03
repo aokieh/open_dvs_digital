@@ -66,13 +66,16 @@ module regfile (
     output logic [`DAC_WIDTH-1:0] dac_config_8,
     output logic [`DAC_WIDTH-1:0] dac_config_9,
 
-    //TEST ADDITIONAL PORTS
-    // output logic [`BIAS_WIDTH-1:0] bias_0,
-    // output logic [`BIAS_WIDTH-1:0] bias_1,
-    // output logic [`BIAS_WIDTH-1:0] bias_2,
-    // output logic [`BIAS_WIDTH-1:0] bias_3,
+    // Programmable Imager Speed
+    output logic [7:0] event_rate_reg,
 
-    output logic [7:0] event_rate_reg
+    // Programmable Timing Inputs (14-BIT TUNING)
+    output logic [13:0]  p_pre_charge,
+    output logic [13:0]  p_buffer,
+    output logic [13:0]  p_detect,
+    output logic [13:0]  p_on_detect,
+    output logic [13:0]  p_off_detect,
+    output logic [13:0]  p_rst
 );
     localparam ROW_DIV = $clog2(`LSB_DIV);
     logic [`RF_WIDTH-1:0] mem_in  [`RF_DEPTH];
@@ -92,13 +95,6 @@ module regfile (
     assign dac_config_7 = dac_configs[7];
     assign dac_config_8 = dac_configs[8];
     assign dac_config_9 = dac_configs[9];
-
-    //  Biases assignments (Registers <--> Ports)
-    // logic [23:0] bias [`NUM_BIASES];
-    // assign bias_0 = bias[0];
-    // assign bias_1 = bias[1];
-    // assign bias_2 = bias[2];
-    // assign bias_3 = bias[3];
 
     //---------------------------------------------------------------
     // RW/RO Mappings
@@ -137,6 +133,13 @@ module regfile (
         //INTERNAL EVENT RATE
         `mem_map(event_rate_reg, 108) //addressing byte 
 
+        // 14-BIT PHASE TUNINGS (2 bytes each)
+        `mem_map(p_pre_charge, 112)
+        `mem_map(p_buffer,     114)
+        `mem_map(p_detect,     116)
+        `mem_map(p_on_detect,  118)
+        `mem_map(p_off_detect, 120)
+        `mem_map(p_rst,        122)
     end
 
 
@@ -153,33 +156,6 @@ module regfile (
             `mem_map_pulse(fifo_rd_en_reg, 2, 0)
         end
     end
-
-
-    // //---------------------------------------------------------------
-    // // Write data
-    // //---------------------------------------------------------------
-    // always @(posedge clk, negedge rst_n) begin
-    //     if (!rst_n) begin
-    //         foreach (mem_in[i])
-    //             mem_in[i] <= '0;
-    //     end 
-    //     else begin
-    //         if (we_reg) begin
-    //             foreach (wmask_reg[i]) begin
-    //                 if (wmask_reg[i]) 
-    //                     mem_in[addr_reg][i*8 +: 8] <= wdata_reg[i*8 +: 8];
-    //             end
-    //         end
-    //     end
-    // end
-
-    
-    // //---------------------------------------------------------------
-    // // Read data
-    // //---------------------------------------------------------------
-    // always_comb begin
-    //     rdata_reg <= mem_out[addr_reg];	
-    // end
 
 //---------------------------------------------------------------
 // Write data - altered for yosys

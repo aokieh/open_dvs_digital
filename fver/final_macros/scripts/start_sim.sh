@@ -8,7 +8,8 @@ xrun -64bit \
      -DUNIT_DELAY \
      -DFUNCTIONAL \
      +define+USE_POWER_PINS \
-     +nospecify \
      +nowarnNODNTW \
      -f ../scripts/xrun.f
      # -input self_check.tcl
+     
+     # +nospecify \

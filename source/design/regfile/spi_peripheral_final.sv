@@ -35,19 +35,8 @@ module spi_peripheral (
     output logic [1:0] shift_en_fifo,
 
     // Added for SPI Continuous Read Mode
-    input logic data_ready_spi  // TODO: added port for data safety
-
-    // FIFO Interface (SPI <---> 4x FIFOs)
-    // input  logic [ 9:0] fifo_rdata_0, fifo_rdata_1, fifo_rdata_2, fifo_rdata_3,
-    // input  logic        fifo_empty_0, fifo_empty_1, fifo_empty_2, fifo_empty_3,
-    // output logic        fifo_rd_en_0, fifo_rd_en_1, fifo_rd_en_2, fifo_rd_en_3
+    input logic data_ready_spi
 );
-
-    // Two 8-bit transmissions per channel - cycle 1 is op/addr_reg, cycle 2 all data
-    // COPI[3]: data_3, xxxx_xxxx
-    // COPI[2]: data_2, xxxx_xxxx
-    // COPI[1]: data_1, addr_reg
-    // COPI[0]: data_0, opcode
 
     logic [7:0] opcode_0;       //opcode comes from COPI[0]
     logic [2:0] opcode_valid;
@@ -86,36 +75,6 @@ module spi_peripheral (
     // Explicitly sink unused bits to prevent Verilator warnings
     wire _unused_bits = &{1'b0, opcode_0[7], addr_0[7], addr_valid[4:2]};
 
-    // FIFO Read control - data from ASYNC -> readout
-    // logic [ 9:0] fifo_readout_0_data;
-    // logic [ 9:0] fifo_readout_1_data;
-    // logic [ 9:0] fifo_readout_2_data;
-    // logic [ 9:0] fifo_readout_3_data;
-
-    // FIFO Interface (SPI <---> 4x FIFOs)
-    // input  logic [ 9:0] fifo_rdata_0, fifo_rdata_1, fifo_rdata_2, fifo_rdata_3,
-    // input  logic        fifo_empty_0, fifo_empty_1, fifo_empty_2, fifo_empty_3,
-    // output logic        fifo_rd_en_0, fifo_rd_en_1, fifo_rd_en_2, fifo_rd_en_3
-
-    // TODO - Count bits being transmitted.
-    // Used to decode opcode, addr_reg, and data
-    // always_ff @(posedge SCK, posedge CS_N) begin
-    //     if (CS_N) begin
-    //         cycle_count <= '0;
-    //     end else begin
-    //         // Increment count if chip select is asserted
-    //         cycle_count <= cycle_count + 1'b1;
-
-    //         if(cycle_count <= 4'd15 && opcode_valid == 3'b111) begin
-    //             if (cycle_count == 4'd14) begin
-    //                 shift_en_fifo <= 2'b11;
-    //                 fifo_shift_count <= fifo_shift_count + 4'd1;
-    //             end
-    //         end
-
-    //     end
-    // end
-
 
     //--- Counter Logic ---//
 always_ff @(posedge SCK or posedge CS_N) begin
@@ -126,29 +85,8 @@ always_ff @(posedge SCK or posedge CS_N) begin
     end else begin
         // In data streaming mode (opcode_valid == 3'b111)
         if (opcode_valid == 3'b111) begin
-            // $display("cycle_count=%0d, fifo_shift_count=%0d, CIPO=%b", cycle_count, fifo_shift_count, CIPO);
 
-            // if (cycle_count < 4'd14) begin
-            //     cycle_count <= cycle_count + 1;
-            //     shift_en_fifo <= 2'b00;
-            // end else if (cycle_count == 4'd14) begin
-            //     // Load next FIFO value so it's ready for the next cycle (cycle 15)
-            //     // shift_en_fifo <= 2'b11;
-                
-            //     // THE FIX: Only pop the FIFO if data is actually ready!
-            //     if (data_ready_spi) begin
-            //         shift_en_fifo <= 2'b11;
-            //     end else begin
-            //         shift_en_fifo <= 2'b00;
-            //     end
-            //     cycle_count <= cycle_count + 1;   // To 15
-            // end else if (cycle_count == 4'd15) begin
-            //     shift_en_fifo <= 2'b00;
-            //     cycle_count <= 4'd8;
-            //     fifo_shift_count <= fifo_shift_count + 1;
-            // end
-
-            // Inside your SPI FSM always_ff block:
+            // Inside SPI FSM always_ff block:
             
             if (cycle_count < 4'd13) begin          // Changed from 14
                 cycle_count <= cycle_count + 1;
@@ -212,19 +150,12 @@ end
         opcode_valid = opcode_0[2:0];
 
         en_regfile_write  = (opcode_valid[2] == 1'b0 &&
-                             cycle_count > 7 && 
-                             cycle_count <= 15);
+                             cycle_count > 7); //&& 
+                            //  cycle_count <= 15);
         en_fifo_read      = (opcode_valid == 3'b111 && 
                             fifo_shift_count < 9 && 
-                            cycle_count >= 8 && 
-                            cycle_count <= 15);
-        
-        // en_tx_fifo_opcode = (cycle_count <= 7);
-        // en_tx_fifo_data   = (opcode_valid == 3'b111 && fifo_tx_cycle_count >= 4'd8 && fifo_tx_cycle_count <= 4'd14);
-        // en_tx_fifo_data   = (opcode_valid == 3'b111 
-                        // && fifo_shift_count < 9
-                        // && cycle_count >= 8 && cycle_count <= 15);
-        // opcode_valid == 3'b111 && fifo_tx_cycle_count > 4'd7 && fifo_shift_count <9)
+                            cycle_count >= 8); //&& 
+                            // cycle_count <= 15);
         
         mem_write_next_re = determine_write_next_re(opcode_valid, cycle_count);
         addr_valid   = {addr_0[4:0]};
@@ -264,59 +195,6 @@ end
         end
     end
 
-    //---------------------------------------------------
-    // SPI TX data to Controller on falling edge
-    //---------------------------------------------------
-    // always_ff @(negedge SCK, posedge CS_N) begin
-    //     if (CS_N) begin
-    //         // Don't transmit when chip select is released
-    //         CIPO[3:0] <= 4'd0;
-    //         fifo_shift_count <= 4'd0;
-    //         shift_en_fifo <= 2'b00;
-    //         fifo_tx_cycle_count <= '0;
-    //     end else begin //sending out read data MSB down to LSB
-            
-    //         if (en_tx_fifo_opcode || en_tx_fifo_data ) begin
-    //             fifo_tx_cycle_count <= fifo_tx_cycle_count + 1;
-    //             shift_en_fifo <= 2'b00;
-    //         end           
-
-    //         if (opcode_valid[2] == 0 && cycle_count > 7) begin
-    //             if (cycle_count <= 15) begin
-    //                 CIPO[3] <= tx_data_3[15-(cycle_count)];
-    //                 CIPO[2] <= tx_data_2[15-(cycle_count)];
-    //                 CIPO[1] <= tx_data_1[15-(cycle_count)];
-    //                 CIPO[0] <= tx_data_0[15-(cycle_count)];
-    //             end
-    //         end
-
-    //         // else if (opcode_valid == 3'b111 && fifo_tx_cycle_count > 4'd7) begin  // we need to send 8-bits, 9-times to use same architecture
-    //         else if (en_tx_fifo_data) begin     // we need to send 8-bits, 9-times to use same architecture
-    //             if (fifo_tx_cycle_count <= 4'd15) begin
-    //                 CIPO[3] <= tx_data_3[15-(fifo_tx_cycle_count)];
-    //                 CIPO[2] <= tx_data_2[15-(fifo_tx_cycle_count)];
-    //                 CIPO[1] <= tx_data_1[15-(fifo_tx_cycle_count)];
-    //                 CIPO[0] <= tx_data_0[15-(fifo_tx_cycle_count)];
-                
-    //                 //shift one cycle early, to pre-load data? There's a reg in intf
-    //                 if (fifo_tx_cycle_count == 4'd14 && fifo_shift_count < 4'd9) begin
-    //                     shift_en_fifo <= 2'b11;
-    //                     fifo_shift_count <= fifo_shift_count + 4'd1;
-    //                     fifo_tx_cycle_count <= 4'd8; // needs to reset to index the byte properly 
-    //                 end else if (fifo_shift_count == 4'd9)  begin //this goes from 0-8 then resets, 9 total?
-    //                     shift_en_fifo <= 2'b00;
-    //                     fifo_shift_count <= 4'd0;
-    //                 end if (fifo_tx_cycle_count == 4'd15 && fifo_shift_count < 4'd9) begin
-    //                     fifo_tx_cycle_count <= 4'd8; //resetting to lower bound for bit assigning
-    //                 end
-
-    //             end else begin
-    //                 // not needed since signals are taken care of in rst?
-    //                 CIPO[3:0] <= 4'd0;
-    //             end
-    //         end
-    //     end
-    // end
 
     always_ff @(negedge SCK, posedge CS_N) begin
         if (CS_N) begin

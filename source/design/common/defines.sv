@@ -14,7 +14,7 @@
 
 `define LSB_DIV (`RF_WIDTH / 8)
 
-`define DAC_WIDTH 11
+`define DAC_WIDTH 12
 
 `define NUM_DACS  10
 

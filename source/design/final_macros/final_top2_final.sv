@@ -5,7 +5,7 @@
 //  and the Dual-Spine DVS Core (fifo_rows_cols_macro).
 //---------------------------------------------------------------------------
 
-module final_top (
+module final_top2 (
     `ifdef USE_POWER_PINS
         inout vccd1, 
         inout vssd1, 
@@ -25,10 +25,10 @@ module final_top (
     // -----------------------------------------------------------
     // Analog / Peripheral Configurations
     // -----------------------------------------------------------
-    // output logic [23:0] bias_0, bias_1, bias_2, bias_3,
     output logic [`DAC_WIDTH-1:0] dac_config_0, dac_config_1, dac_config_2, dac_config_3,
     output logic [`DAC_WIDTH-1:0] dac_config_4, dac_config_5, dac_config_6, dac_config_7,
     output logic [`DAC_WIDTH-1:0] dac_config_8, dac_config_9,
+
     // -----------------------------------------------------------
     // DVS Core: Analog Array Interfaces (128x128 Grid)
     // -----------------------------------------------------------
@@ -57,6 +57,7 @@ module final_top (
 
     // TODO: Route these from regfile in the future
     input  logic         sm_enable         // Comes from io_pad
+    
     // input  logic [7:0]   program_bits       // set with register
 );
 
@@ -72,17 +73,25 @@ module final_top (
     logic [ `RF_WIDTH-1:0] rdata_reg;
 
     // RegFile <-> Core (IRQs and Metadata)
-    logic [`FIFO_AWIDTH-1:0] irq_deassert_thresh_reg;
-    logic [`FIFO_AWIDTH-1:0] irq_assert_thresh_reg;
+    // LINTER FIX: Expanded to 10 bits to match regfile output port expectations
+    logic [9:0]              irq_deassert_thresh_reg;
+    logic [9:0]              irq_assert_thresh_reg;
     logic                    fifo_rd_en_reg;
     logic                    fifo_rst_n_reg;
     logic [7:0]              event_rate_reg;
+    
+    logic [13:0] p_pre_charge;
+    logic [13:0] p_buffer;
+    logic [13:0] p_detect;
+    logic [13:0] p_on_detect;
+    logic [13:0] p_off_detect;
+    logic [13:0] p_rst;
 
     // SPI <-> Core (FIFO Readout)
     logic [15:0] rdata_spi_0; // Top Tier
     logic [15:0] rdata_spi_1; // Bottom Tier
     logic [1:0]  shift_en_fifo;
-    
+
     // Core FIFO Status Flags
     logic empty_fifo_top, full_fifo_top;
     logic empty_fifo_bot, full_fifo_bot;
@@ -93,12 +102,28 @@ module final_top (
 
     // Aggregate numel for the RegFile (or map them independently)
     logic [`FIFO_AWIDTH-1:0] fifo_numel_combined;
+    
     assign fifo_numel_combined = numel_fifo_top | numel_fifo_bot; 
+    
     // Aggregate the data ready mode (EXACT same gate delays)
     assign data_ready_fifo = ~empty_fifo_top & ~empty_fifo_bot;
     assign data_ready_top  = ~empty_fifo_top & ~empty_fifo_bot;
 
-    // assign event_rate = event_rate_reg;
+
+    // ---------------------------------------------------
+    // LINTER FIX: Explicitly Sink All Unused Signals
+    // ---------------------------------------------------
+    wire _unused_signals = &{
+        1'b0,
+        we_out,
+        irq_deassert_thresh_reg,
+        irq_assert_thresh_reg,
+        fifo_rd_en_reg,
+        fifo_rst_n_reg,
+        full_fifo_top,
+        full_fifo_bot
+    };
+
 
     // ---------------------------------------------------
     // 1. SPI Peripheral
@@ -110,7 +135,8 @@ module final_top (
         .CS_N(CS_N), .SCK(clk), .COPI(COPI), .CIPO(CIPO),
         
         // Mem I/O
-        .addr_reg, .we_reg, .we_out, .wdata_reg, .wmask_reg, .rdata_reg,
+        .addr_reg, .we_reg, .we_out, .wdata_reg, .wmask_reg, 
+        .rdata_reg,
         
         // FIFO I/O
         .rdata_spi_0   (rdata_spi_0),
@@ -144,23 +170,33 @@ module final_top (
         // Configuration
         .dac_config_0, .dac_config_1, .dac_config_2, .dac_config_3, .dac_config_4, 
         .dac_config_5, .dac_config_6, .dac_config_7, .dac_config_8, .dac_config_9,
+      
         // .bias_0, .bias_1, .bias_2, .bias_3,
-        .event_rate_reg
+        .event_rate_reg, .p_pre_charge, .p_buffer, .p_detect,
+        .p_on_detect(p_on_detect), .p_off_detect, .p_rst
     );
 
     // assign event_rate = event_rate_reg;
+
     // ---------------------------------------------------
     // 3. Dual-Spine DVS Core
     // ---------------------------------------------------
-    fifo_rows_cols_macro i_dvs_core (
+    fifo_rows_cols_macro2 i_dvs_core (
         `ifdef USE_POWER_PINS
             .vccd1 (vccd1), .vssd1 (vssd1),
         `endif
         
         .sys_clk      (clk),
         .rst_n        (rst_n),
+     
         .sm_enable    (sm_enable),
         .program_bits (event_rate_reg),
+        .p_pre_charge (p_pre_charge),
+        .p_buffer     (p_buffer),
+        .p_detect     (p_detect),
+        .p_on_detect  (p_on_detect),
+        .p_off_detect (p_off_detect),
+        .p_rst        (p_rst),
 
         // Top Tier Analog
         .array_col_top_left      (array_col_top_left),
@@ -196,4 +232,4 @@ module final_top (
         .numel_fifo_bot (numel_fifo_bot)
     );
 
-endmodule : final_top
+endmodule : final_top2
