@@ -27,23 +27,23 @@ module col_event_rst0 (
 
     // Data FROM the Pixel Array
     // input  logic [`IMAGER_COL_WIDTH-1:0] array_col_out,
-    input  logic        array_col_out, 
+    input  logic [1:0]  array_col_out, 
 
     // Output TO the Pixel Array
     // output logic [`IMAGER_COL_WIDTH-1:0] col_pixel_rst
-    output logic        col_pixel_rst
+    output logic [1:0]  col_pixel_rst
 );
 
     // -----------------------------------------------------------------
     // 1. Continuously Running Bus Synchronizer
     // -----------------------------------------------------------------
-    logic   col_out_m1;
-    logic  col_out_m2;
+    logic [1:0] col_out_m1;
+    logic [1:0] col_out_m2;
 
     always_ff @(posedge div_clk or negedge rst_n) begin
         if (!rst_n) begin
-            col_out_m1 <= 1'd0;
-            col_out_m2 <= 1'd0;
+            col_out_m1 <= 2'd0;
+            col_out_m2 <= 2'd0;
         end else begin
             // This runs EVERY cycle. Metastability resolves here safely.
             col_out_m1 <= array_col_out;
@@ -54,20 +54,20 @@ module col_event_rst0 (
     // -----------------------------------------------------------------
     // 2. Gated Latching & Logic
     // -----------------------------------------------------------------
-    logic  on_pixels_reg;
-    logic  off_pixels_reg;
+    logic [1:0] on_pixels_reg;
+    logic [1:0] off_pixels_reg;
 
     always_ff @(posedge div_clk or negedge rst_n) begin
         if (!rst_n) begin
-            on_pixels_reg  <= 1'd0;
-            off_pixels_reg <= 1'd0;
-            col_pixel_rst  <= 1'd0;
+            on_pixels_reg  <= 2'd0;
+            off_pixels_reg <= 2'd0;
+            col_pixel_rst  <= 2'd0;
         end else begin
             // A. The Defensive Clear
             // Wipe the registers when moving to a new row
             if (sm_next_row) begin
-                on_pixels_reg  <= 1'd0;
-                off_pixels_reg <= 1'd0;
+                on_pixels_reg  <= 2'd0;
+                off_pixels_reg <= 2'd0;
             end 
             else begin
                 // B. Capture ON events from the clean, synchronized bus
@@ -85,7 +85,7 @@ module col_event_rst0 (
             if (sm_pixel_rst) begin
                 col_pixel_rst <= on_pixels_reg | off_pixels_reg;
             end else begin
-                col_pixel_rst <= 1'd0;
+                col_pixel_rst <= 2'd0;
             end
         end
     end

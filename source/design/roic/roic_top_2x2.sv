@@ -24,7 +24,7 @@ module roic_top0 (
     input  logic [7:0]  program_bits, // Sets state duration
 
     // Data FROM the Pixel Array (1 Column)
-    input  logic        array_col_out, 
+    input  logic [1:0]  array_col_out, 
 
     // Analog Array Control Plane (2 Rows)
     output logic        pre_charge_global, // Active LOW
@@ -32,7 +32,7 @@ module roic_top0 (
     output logic [1:0]  row_off_detect,
 
     // Analog Array Control Plane (1 Column)
-    output logic        col_pixel_rst,
+    output logic [1:0]  col_pixel_rst,
 
     // Digital Backend Data Plane (To FIFOs)
     output logic        row_addr,    // 1-bit address for 2 rows

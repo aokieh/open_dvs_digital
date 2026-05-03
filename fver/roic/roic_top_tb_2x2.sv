@@ -16,20 +16,20 @@ module roic_top_tb_2x1();
     logic        rst_n = 0;
     logic        sm_enable = 0;
     logic [7:0]  program_bits = 0;
-    logic        array_col_out = 0; // [UPDATED] 1-bit Column
+    logic [1:0]  array_col_out = 0; // [UPDATED] 1-bit Column
 
     // Outputs
     logic        pre_charge_global;
     logic [1:0]  row_on_detect;     // [UPDATED] 2-bit Row Lines
     logic [1:0]  row_off_detect;    // [UPDATED] 2-bit Row Lines
-    logic        col_pixel_rst;     // [UPDATED] 1-bit Column Reset
+    logic [1:0]  col_pixel_rst;     // [UPDATED] 1-bit Column Reset
     logic        row_addr;          // [UPDATED] 1-bit Row Address
     logic        fifo_wr_en;
     logic [1:0]  event_flag;
 
     // --- File I/O & Memory ---
     // Holds the 4 phases of test data (2 rows * 2 phases = 4 entries)
-    logic        img_mem [0:3];     // [UPDATED] 1-bit wide entries
+    logic [1:0]       img_mem [0:3];     // [UPDATED] 1-bit wide entries
     integer      fd;              // File descriptor for output log
 
     // DUT Instantiation
@@ -75,10 +75,10 @@ module roic_top_tb_2x1();
 
         // Manually load hardcoded test data for the 2x1 array
         // Pattern: Row 0 gets an ON event. Row 1 gets an OFF event.
-        img_mem[0] = 1'b1; // Row 0 ON
-        img_mem[1] = 1'b0; // Row 0 OFF
-        img_mem[2] = 1'b0; // Row 1 ON
-        img_mem[3] = 1'b1; // Row 1 OFF
+        img_mem[0] = 2'b11; // Row 0 ON
+        img_mem[1] = 2'b00; // Row 0 OFF
+        img_mem[2] = 2'b00; // Row 1 ON
+        img_mem[3] = 2'b11; // Row 1 OFF
 
         // Open file to log the backend captures
         fd = $fopen("/LinuxRAID/home/aokieh1/projects/open_dvs_digital/fver/roic/python/sim_output_2x1.txt", "w");
@@ -127,8 +127,8 @@ module roic_top_tb_2x1();
         longint event_time;
         longint actual_delta;
 
-        logic test_on_data;  // [UPDATED] 1-bit
-        logic test_off_data; // [UPDATED] 1-bit
+        logic [1:0] test_on_data;  // [UPDATED] 1-bit
+        logic [1:0] test_off_data; // [UPDATED] 1-bit
         logic expected_addr; // [UPDATED] 1-bit
 
         $display("\n--------------------------------------------------");
@@ -140,7 +140,7 @@ module roic_top_tb_2x1();
         rst_n = 0;
         sm_enable = 0;
         program_bits = p_bits;
-        array_col_out = 1'b0;
+        array_col_out = 2'b0;
         #(SYS_CLK_PERIOD_NS * 10);
         rst_n = 1;
         
@@ -226,7 +226,7 @@ module roic_top_tb_2x1();
             if (verbose) $display("  -> [PASS] Data correctly bitwise OR'd and latched.");
 
             // Clear the bus
-            array_col_out = 1'b0;
+            array_col_out = 2'b0;
 
             // -------------------------------------------------------------
             // 5. Verify Address Increment on sm_next_row falling edge
