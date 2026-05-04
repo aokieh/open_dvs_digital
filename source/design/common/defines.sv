@@ -20,7 +20,7 @@
 
 `define BIAS_WIDTH 24
 
-`define NUM_BIASES  0
+`define NUM_BIASES  4
 
 
 //------------------------------
