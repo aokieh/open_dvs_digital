@@ -25,7 +25,8 @@
 
 # Testbench & DUT files for Digital Top (SPI Slave + Register File)
 ../../../source/design/regfile/regfile.sv
-../../../source/design/regfile/spi_peripheral_final.sv
+../../../source/design/regfile/spi_peripheral_re.sv
+// ../../../source/design/regfile/spi_peripheral_final.sv
 // ../../../source/design/regfile/spi_peripheral.sv
 // ../../../source/design/final_macros/digital_top.sv
 // ../../digital_top/self_check_tb.sv
@@ -35,6 +36,8 @@
 ../../../source/design/sync_fifo/fifo_intf3.sv
 ../../../source/design/sync_fifo/sync_fifo_top3.sv
 ../../../source/design/final_macros/col_readout_macro.sv
+
+
 // ../col_readout_macro_tb.sv
 
 # Testbench & DUT files for Row Decoder Macro (FSM + Row Scanner)
@@ -51,12 +54,14 @@
 ../../../source/design/final_macros/fifo_rows_cols_macro2.sv
 // ../../../source/design/final_macros/final_top.sv
 // ../../../source/design/final_macros/final_top2.sv
-../../../source/design/final_macros/final_top2_final.sv
+// ../../../source/design/final_macros/final_top2_final.sv <-- prev final
+../../../source/design/final_macros/final_top3.sv
 // ../fifo_rows_cols_macro_tb.sv
 // ../fifo_rows_cols_macro2_tb.sv
 
 # Testbench & DUT for Final Top Level (Col, Row, SPI, Regfile)
 // ../../../source/design/final_macros/final_top.sv
 // ../final_top_tb.sv
-../final_top_tb2.sv
+// ../final_top_tb2.sv
+../final_top_tb3.sv
 // ../final_top_tb_gls.sv
