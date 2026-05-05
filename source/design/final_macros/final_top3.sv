@@ -56,7 +56,8 @@ module final_top3 (
     output logic data_ready_top,
 
     // TODO: Route these from regfile in the future
-    input  logic         sm_enable         // Comes from io_pad
+    input  logic         sm_enable,            // Comes from io_pad
+    input  logic         pix_rst_global_in     // Comes from io_pad
     // input  logic [7:0]   program_bits       // set with register
 );
 
