@@ -524,7 +524,7 @@ module tb ();
         // ---------------- Write all ones ------------------------
         pulse_fifo_rst_n('hf);
         pulse_fsm_rst_n('hf);
-        // set_irq('hfff, 'hfff, 0);
+        set_irq('hfff, 'hfff, 0);
         write_dacs('hfff, 0);
         // write_biases(4'hf, 1, 0);
 
@@ -538,7 +538,7 @@ module tb ();
         // ---------------- Write all zeros -----------------------
         pulse_fifo_rst_n('h0);
         pulse_fsm_rst_n('h0);
-        // set_irq('h000, 'h000, 0);
+        set_irq('h000, 'h000, 0);
         write_dacs('h000, 0);
         // write_biases(4'h0, 1, 0);
 
@@ -552,7 +552,7 @@ module tb ();
         // ---------------- Write sequence data -------------------
         write_dacs_seq('h5aa);
         // write_biases(4'ha, 0, 0);              // starts A, increments
-        // set_irq('h2AA, 'h2AA, 0);
+        set_irq('h2AA, 'h2AA, 0);
         write_fine_seq(8'hA0);
         write_nfine_seq(8'hB0);
         write_coarse_seq(8'hC0);
@@ -563,7 +563,7 @@ module tb ();
         // ---------------- Write sequence data -------------------
         write_dacs_seq('hfaa);
         // write_biases(4'hf, 0, 0);              // starts F, increments
-        // set_irq('h0CC, 'h1DD, 0);
+        set_irq('h0CC, 'h1DD, 0);
         write_fine_seq(8'h10);
         write_nfine_seq(8'h30);
         write_coarse_seq(8'h50);

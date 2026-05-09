@@ -34,8 +34,8 @@ module digital_top_re (
     // TODO: removable signals that we aren't using (at the moment)
     output logic                        we_out,
     // output logic                        we_reg,
-    output logic [`FIFO_AWIDTH-1:0]     irq_assert_thresh_reg,
-    output logic [`FIFO_AWIDTH-1:0]     irq_deassert_thresh_reg,
+    output logic [`NUM_AMUX_IO_PADS-1:0] pad_bias_enable,
+    output logic [`NUM_AMUX_IO_PADS-1:0] pad_bias_disable,
     input  logic [`FIFO_AWIDTH-1:0]     fifo_numel_reg,
     // output logic                        fifo_rd_en_reg,
     output logic                        fifo_rst_n_reg,
@@ -212,6 +212,10 @@ module digital_top_re (
         .fifo_numel_reg,
         .fifo_debug_top('0),       // Tied off (input not at top level)
         .fifo_debug_bot('0),       // Tied off (input not at top level)
+
+        // Analog BGR Pads
+        .pad_bias_enable,
+        .pad_bias_disable,
 
         // DAC
         .dac_config_0,

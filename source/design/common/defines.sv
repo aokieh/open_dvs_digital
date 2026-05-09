@@ -38,6 +38,8 @@
 
 `define NUM_BIAS_COMBINED 10
 
+`define NUM_AMUX_IO_PADS 10
+
 //------------------------------
 // Array size parameters
 //------------------------------

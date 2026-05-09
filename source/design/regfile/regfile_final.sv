@@ -56,6 +56,8 @@ module regfile (
     input  logic [`FIFO_AWIDTH-1:0] fifo_debug_bot,
     // input  logic [ `FIFO_WIDTH-1:0] fifo_rdata,
 
+    output logic [`NUM_AMUX_IO_PADS-1:0] pad_bias_enable,
+    output logic [`NUM_AMUX_IO_PADS-1:0] pad_bias_disable,
     // IRQ
     // output logic [9:0] irq_deassert_thresh_reg,
     // output logic [9:0] irq_assert_thresh_reg,
@@ -236,6 +238,10 @@ module regfile (
         // FIFO Debug
         `mem_map_ro(fifo_debug_top, 10)
         `mem_map_ro(fifo_debug_bot, 11)
+
+        // Analog IO Pads
+        `mem_map(pad_bias_enable,  12)
+        `mem_map(pad_bias_disable, 14)
 
         // DACs 
         for (int i = 0; i < `NUM_DACS; i++) begin
