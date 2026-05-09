@@ -35,7 +35,12 @@ module spi_peripheral_re (
     output logic [1:0] shift_en_fifo,
 
     // Added for SPI Continuous Read Mode
-    input logic data_ready_spi
+    input logic data_ready_spi,
+
+    // Added for debug from regfile
+    output logic [`RF_WIDTH-1:0] spi_last_read_data_reg,
+    output logic [7:0]          opcode_0_reg,
+    output logic [7:0]          addr_0_reg
 );
 
     logic [7:0] opcode_0;       //opcode comes from COPI[0]
@@ -158,6 +163,9 @@ end
         
         mem_write_next_re = determine_write_next_re(opcode_valid, cycle_count);
         addr_valid   = {addr_0[4:0]};
+
+        opcode_0_reg    = {5'b00000, opcode_valid};
+        addr_0_reg      = {3'b000, addr_valid};
     end
 
     //proper address decoding
@@ -195,7 +203,7 @@ end
     end
 
     // =======================================================
-    // CHANGED: negedge SCK -> posedge SCK
+    // SPI TX to Controller on rising edge
     // =======================================================
     always_ff @(posedge SCK, posedge CS_N) begin
         if (CS_N) begin
@@ -268,6 +276,8 @@ end
         tx_data_2 = spi_tx_data[23:16];
         tx_data_1 = spi_tx_data[ 15:8];
         tx_data_0 = spi_tx_data[  7:0];
+
+        spi_last_read_data_reg = spi_tx_data;
     end
 
     //Decode data to be written to memory

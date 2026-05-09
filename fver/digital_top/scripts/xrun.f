@@ -14,10 +14,12 @@
 
 # Design file
 // ../../../source/design/final_macros/digital_top.sv
-../../../source/design/final_macros/digital_top_re.sv
-../../../source/design/regfile/regfile.sv
+//../../../source/design/final_macros/digital_top_re.sv
+//../../../source/design/regfile/regfile.sv
+../../../source/design/regfile/regfile_final.sv
 // ../../../source/design/regfile/spi_peripheral.sv
 ../../../source/design/regfile/spi_peripheral_re.sv
+../../../source/design/final_macros/digital_top_re.sv
 
 # Testbench DUT file
 ../self_check_tb_re.sv
