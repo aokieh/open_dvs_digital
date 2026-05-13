@@ -76,7 +76,7 @@ module col_event_rst (
                 
                 // C. Capture OFF events from the clean, synchronized bus
                 if (sm_off_detect && sm_detect_pulse) begin
-                    off_pixels_reg <= col_out_m2;
+                    off_pixels_reg <= ~col_out_m2; //CHANGE MADE FOR RYAN
                 end
             end
 
