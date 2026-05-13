@@ -1,13 +1,13 @@
 //---------------------------------------------------------------------------
-// Module: roic_top_tb_2x1
+// Module: roic_top_tb_2x2
 // Description: 
-//  Self-checking system testbench for the 2x1 Phase-Gated ROIC Top Level.
+//  Self-checking system testbench for the 2x2 Phase-Gated ROIC Top Level.
 //  Sweeps the 2-row frame and captures outputs to a file.
 //---------------------------------------------------------------------------
 
 `timescale 1ns/1ps
 
-module roic_top_tb_2x1();
+module roic_top_tb_2x2();
 
     parameter SYS_CLK_PERIOD_NS = 20; // 50MHz Master Clock
 
@@ -16,21 +16,29 @@ module roic_top_tb_2x1();
     logic        rst_n = 0;
     logic        sm_enable = 0;
     logic [7:0]  program_bits = 0;
-    logic [1:0]  array_col_out = 0; // [UPDATED] 1-bit Column
+    logic [1:0]  array_col_out = 0; // [UPDATED] 2-bit Column
+
+    logic [13:0] p_pre_charge = 14'd4;      // set to 14'd4
+    logic [13:0] p_buffer =     14'd4;      // set to 14'd4
+    logic [13:0] p_detect =     14'd4;      // set to 14'd4
+    logic [13:0] p_on_detect =  14'd8;      // set to 14'd8
+    logic [13:0] p_off_detect = 14'd8;      // set to 14'd8
+    logic [13:0] p_rst =        14'd25;     // set to 14'd25
 
     // Outputs
     logic        pre_charge_global;
     logic [1:0]  row_on_detect;     // [UPDATED] 2-bit Row Lines
     logic [1:0]  row_off_detect;    // [UPDATED] 2-bit Row Lines
-    logic [1:0]  col_pixel_rst;     // [UPDATED] 1-bit Column Reset
+    logic [1:0]  col_pixel_rst;     // [UPDATED] 2-bit Column Reset
     logic        row_addr;          // [UPDATED] 1-bit Row Address
     logic        fifo_wr_en;
     logic [1:0]  event_flag;
+    logic        detect, ndetect;
 
     // --- File I/O & Memory ---
     // Holds the 4 phases of test data (2 rows * 2 phases = 4 entries)
-    logic [1:0]       img_mem [0:3];     // [UPDATED] 1-bit wide entries
-    integer      fd;              // File descriptor for output log
+    logic [1:0]  img_mem [0:3];     // [UPDATED] 2-bit wide entries
+    integer      fd;                // File descriptor for output log
 
     // DUT Instantiation
     roic_top0 i_dut (
@@ -46,12 +54,23 @@ module roic_top_tb_2x1();
         .row_on_detect     (row_on_detect),
         .row_off_detect    (row_off_detect),
         .col_pixel_rst     (col_pixel_rst),
+        .detect            (detect),
+        .ndetect           (ndetect),
         
         // Backend
         .row_addr          (row_addr),
         .fifo_wr_en        (fifo_wr_en),
-        .event_flag        (event_flag)
+        .event_flag        (event_flag),
+
+        // Programmable timings
+        .p_pre_charge(p_pre_charge),
+        .p_buffer(p_buffer),
+        .p_detect(p_detect),
+        .p_on_detect(p_on_detect),
+        .p_off_detect(p_off_detect),
+        .p_rst(p_rst)
     );
+    
 
     // 50MHz Clock Generation
     always #(SYS_CLK_PERIOD_NS / 2) sys_clk = ~sys_clk;
@@ -61,29 +80,29 @@ module roic_top_tb_2x1();
     // -----------------------------------------------------------------
     always @(posedge sys_clk) begin
         if (rst_n && fifo_wr_en) begin
-            // 2-bit event_flag + 1-bit array_col_out = 3 bits
+            // 2-bit event_flag + 2-bit array_col_out = 4 bits
             // Outputting in binary for easy reading of small widths
-            $fdisplay(fd, "%03b", {event_flag, array_col_out});
+            $fdisplay(fd, "%04b", {event_flag, array_col_out});
         end
     end
 
     initial begin
         $display("==================================================");
-        $display("Starting Intent-Based 2x1 ROIC System TB");
+        $display("Starting Intent-Based 2x2 ROIC System TB");
         $display("Testing Timing Deltas, Latching, and State Flow");
         $display("==================================================");
 
-        // Manually load hardcoded test data for the 2x1 array
+        // Manually load hardcoded test data for the 2x2 array
         // Pattern: Row 0 gets an ON event. Row 1 gets an OFF event.
-        img_mem[0] = 2'b11; // Row 0 ON
-        img_mem[1] = 2'b00; // Row 0 OFF
-        img_mem[2] = 2'b00; // Row 1 ON
-        img_mem[3] = 2'b11; // Row 1 OFF
+        img_mem[0] = 2'b11; // Row 0 ON     (both evts)
+        img_mem[1] = 2'b00; // Row 0 OFF    (both evts)
+        img_mem[2] = 2'b00; // Row 1 ON     (no evts)
+        img_mem[3] = 2'b11; // Row 1 OFF    (no evts)
 
         // Open file to log the backend captures
-        fd = $fopen("/LinuxRAID/home/aokieh1/projects/open_dvs_digital/fver/roic/python/sim_output_2x1.txt", "w");
+        fd = $fopen("/LinuxRAID/home/aokieh1/projects/open_dvs_digital/fver/roic/python/sim_output_2x2.txt", "w");
         if (fd == 0) begin
-            $display("[FATAL ERROR] Could not open sim_output_2x1.txt for writing!");
+            $display("[FATAL ERROR] Could not open sim_output_2x2.txt for writing!");
             $stop;
         end
 
@@ -98,7 +117,7 @@ module roic_top_tb_2x1();
 
         $display("\n==================================================");
         $display("ALL SPEEDS, DATAPATHS, AND TIMING DELTAS PASSED!");
-        $display("Simulation Complete. Output written to sim_output_2x1.txt");
+        $display("Simulation Complete. Output written to sim_output_2x2.txt");
         $display("==================================================");
         
         $fclose(fd);
@@ -127,9 +146,9 @@ module roic_top_tb_2x1();
         longint event_time;
         longint actual_delta;
 
-        logic [1:0] test_on_data;  // [UPDATED] 1-bit
-        logic [1:0] test_off_data; // [UPDATED] 1-bit
-        logic expected_addr; // [UPDATED] 1-bit
+        logic [1:0] test_on_data;  // [UPDATED] 2-bit
+        logic [1:0] test_off_data; // [UPDATED] 2-bit
+        logic expected_addr;       // [UPDATED] 1-bit
 
         $display("\n--------------------------------------------------");
         $display(" RUNNING TEST: %s (program_bits = %0d)", name, p_bits);
@@ -217,16 +236,14 @@ module roic_top_tb_2x1();
             // -------------------------------------------------------------
             #(SYS_CLK_PERIOD_NS * 1.5); 
             
-            if (col_pixel_rst !== (test_on_data | test_off_data)) begin
+            // Apply the ~ operator to test_off_data to match the RTL inversion
+            if (col_pixel_rst !== (test_on_data | ~test_off_data)) begin
                 $display("[FATAL ERROR] Data Mismatch at Row %0d!", r);
-                $display("  Expected (ON | OFF): %b", (test_on_data | test_off_data));
+                $display("  Expected (ON | ~OFF): %b", (test_on_data | ~test_off_data));
                 $display("  Actual col_pixel_rst: %b", col_pixel_rst);
                 $stop;
             end
             if (verbose) $display("  -> [PASS] Data correctly bitwise OR'd and latched.");
-
-            // Clear the bus
-            array_col_out = 2'b0;
 
             // -------------------------------------------------------------
             // 5. Verify Address Increment on sm_next_row falling edge
@@ -253,4 +270,4 @@ module roic_top_tb_2x1();
         $display("  [SUCCESS] %s intent-based timing and data flow perfect.", name);
     endtask
 
-endmodule : roic_top_tb_2x1
+endmodule : roic_top_tb_2x2

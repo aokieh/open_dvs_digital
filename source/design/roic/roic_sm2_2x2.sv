@@ -9,7 +9,7 @@
 //  Updated for fully programmable phase timings to ensure post-tapeout tuning.
 //---------------------------------------------------------------------------
 
-module roic_sm2 (
+module roic_sm2_2x2 (
     `ifdef USE_POWER_PINS
         inout vccd1, 
         inout vssd1, 
@@ -37,7 +37,8 @@ module roic_sm2 (
     
     // Digital Backend Control
     output logic        sm_next_row, 
-    output logic [5:0]  row_addr,
+    // output logic [5:0]  row_addr,
+    output logic        row_addr,
     output logic        fifo_wr_en,
     output logic [1:0]  event_flag    
 );
@@ -231,4 +232,4 @@ module roic_sm2 (
         end
     end
 
-endmodule : roic_sm2
+endmodule : roic_sm2_2x2

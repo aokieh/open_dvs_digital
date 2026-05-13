@@ -23,6 +23,14 @@ module roic_top0 (
     input  logic        sm_enable,    // Global Enable (Play/Pause)
     input  logic [7:0]  program_bits, // Sets state duration
 
+    // Programmable Timing Inputs (Ticks)
+    input  logic [13:0]  p_pre_charge,
+    input  logic [13:0]  p_buffer,
+    input  logic [13:0]  p_detect,
+    input  logic [13:0]  p_on_detect,
+    input  logic [13:0]  p_off_detect,
+    input  logic [13:0]  p_rst,
+
     // Data FROM the Pixel Array (1 Column)
     input  logic [1:0]  array_col_out, 
 
@@ -37,10 +45,12 @@ module roic_top0 (
     // Digital Backend Data Plane (To FIFOs)
     output logic        row_addr,    // 1-bit address for 2 rows
     output logic        fifo_wr_en,  // Automatically triggers on Read phases
-    output logic [1:0]  event_flag   // 2'b10 = ON Event, 2'b01 = OFF Event
+    output logic [1:0]  event_flag,  // 2'b10 = ON Event, 2'b01 = OFF Event
     
     // Condensed FIFO write data: {col_data(1), event(2), row_addr(1)} = 4 bits
     // output logic [3:0]  wdata_to_fifo  
+    output logic        detect,
+    output logic        ndetect
 );
 
     // -----------------------------------------------------------------
@@ -52,6 +62,9 @@ module roic_top0 (
     logic               sm_pixel_rst;
     logic               sm_next_row;
     
+
+    assign detect  = sm_detect_pulse;
+    assign ndetect = ~sm_detect_pulse;
     // logic [3:0]         evt_to_fifo;
 
     // Concatenate the single bit signals into a 4-bit bus for backend logging
@@ -61,7 +74,7 @@ module roic_top0 (
     // -----------------------------------------------------------------
     // 1. Continuous Pacing Micro-Sequencer (roic_sm0)
     // -----------------------------------------------------------------
-    roic_sm0 i_roic_sm (
+    roic_sm2_2x2 i_roic_sm (
         `ifdef USE_POWER_PINS
             .vccd1             (vccd1),
             .vssd1             (vssd1),
@@ -72,6 +85,14 @@ module roic_top0 (
         .sm_enable         (sm_enable),
         .program_bits      (program_bits),
         
+        // Programmable Timing Inputs
+        .p_pre_charge(p_pre_charge),
+        .p_buffer(p_buffer),
+        .p_detect(p_detect),
+        .p_on_detect(p_on_detect),
+        .p_off_detect(p_off_detect),
+        .p_rst(p_rst),
+
         // Analog Pulses
         .pre_charge_global (pre_charge_global),
         .on_detect         (sm_on_detect),
@@ -89,7 +110,7 @@ module roic_top0 (
     // -----------------------------------------------------------------
     // 2. Physical Row Scanner (Shift Token & Drivers)
     // -----------------------------------------------------------------
-    row_scanner i_row_scanner (
+    row_scanner0 i_row_scanner (
         `ifdef USE_POWER_PINS
             .vccd1          (vccd1),
             .vssd1          (vssd1),
