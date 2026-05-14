@@ -49,80 +49,51 @@ module user_project_wrapper #(
 );
 
     // =======================================================
-    // 1. Digital to Analog Macro Interconnect Wires
+    // 1. Explicit Output Enable (OEB) Setup
     // =======================================================
-    wire [63:0] array_col_top_left, array_col_top_right, array_col_bot_left, array_col_bot_right;
-    wire [63:0] col_event_rst_top_left, col_event_rst_top_right, col_event_rst_bot_left, col_event_rst_bot_right;
-    wire [63:0] row_on_detect_top, row_off_detect_top, row_on_detect_bot, row_off_detect_bot;
+    // 1 = Input (Disables digital output buffer)
+    // 0 = Output (Enables digital output buffer)
     
-    wire [1:0] detect_pulse_global_top, pre_charge_global_top, detect_pulse_global_bot, pre_charge_global_bot;
+    assign io_oeb[6:0]   = 7'h7F;   // Unused/Housekeeping
     
-    wire [10:0] dac_config_0, dac_config_1, dac_config_2, dac_config_3, dac_config_4;
-    wire [10:0] dac_config_5, dac_config_6, dac_config_7, dac_config_8, dac_config_9;
-
-    // Internal wires for metastability
-    logic sm_enable_meta1, sm_enable_meta2, sm_enable_sync;
-    logic pix_rst_meta1, pix_rst_meta2,   pix_rst_sync;
-    wire sync_pix_rst_top_left,  sync_pix_rst_bot_left;
-    wire sync_pix_rst_top_right, sync_pix_rst_bot_right;
-
-
-
-    // =======================================================
-    // 2. Constant Tie-Offs for Wrapper Outputs
-    // (Requires SYNTH_ELABORATE_ONLY = false to become physical cells)
-    // =======================================================
-    
-    // -------------------------------------------------------
-    // OEB Setup (1 = Input, 0 = Output)
-    // -------------------------------------------------------
-    // Active Inputs
+    // Active Digital Inputs
     assign io_oeb[7]     = 1'b1;    // clk
     assign io_oeb[8]     = 1'b1;    // rst_n
-    assign io_oeb[9]     = 1'b1;    // cs_n
-    assign io_oeb[13:10] = 4'b1111; // copi
+    assign io_oeb[9]     = 1'b1;    // CS_N
+    assign io_oeb[13:10] = 4'b1111; // COPI[3:0]
     assign io_oeb[14]    = 1'b1;    // sm_enable
-    // assign io_oeb[15]    = 1'b1;    // clk
-    assign io_oeb[21]    = 1'b1;    // async_array_rst
-
-    // Active Outputs
-    assign io_oeb[19:16] = 4'b0000; // cipo
-    assign io_oeb[20]    = 1'b0;    // data_ready
+    assign io_oeb[15]    = 1'b1;    // pix_rst_global_in (Moved to Pin 15)
     
-    // Unused OEBs (Tied to 1 to make them safe inputs)
-    assign io_oeb[6:0]   = 7'hFF;
-    assign io_oeb[15]    = 1'b0;   
-    assign io_oeb[37:22] = 16'hFFFF; 
+    // Active Digital Outputs
+    assign io_oeb[19:16] = 4'b0000; // CIPO[3:0] 
+    assign io_oeb[20]    = 1'b0;    // data_ready_top 
+    
+    // Unused Digital + Analog pads (Tie to 1 to protect lines)
+    // Pin 21 is now safely in this unused block
+    assign io_oeb[37:21] = 17'h1FFFF;
 
-    // -------------------------------------------------------
-    // IO_OUT Tie-Offs (Must be 0 for all inputs and unused pins)
-    // -------------------------------------------------------
-    assign io_out[7:0]   = 8'h00;
-    assign io_out[8]     = 1'b0;    // rst_n tie-off
-    assign io_out[14:9]  = 6'h00;   // cs_n, copi, sm_enable
-    assign io_out[15]    = 1'b0;
-    assign io_out[21]    = 1'b0;    // async_array_rst tie-off
-    assign io_out[37:22] = 16'h0000;
+    // =======================================================
+    // 1.5 Mandatory Tie-Offs for Unused Outputs (Fixes Yosys)
+    // =======================================================
+    
+    // io_out must be driven to 0 for all inputs and unused pads
+    assign io_out[15:0]  = 16'b0;
+    assign io_out[37:21] = 17'b0;
 
-    // -------------------------------------------------------
-    // Tie off unused SoC internal interfaces
-    // -------------------------------------------------------
+    // SoC interfaces must be tied to 0 to prevent unmapped cell errors
     assign wbs_ack_o   = 1'b0;
     assign wbs_dat_o   = 32'b0;
     assign la_data_out = 128'b0;
     assign user_irq    = 3'b0;
 
-    // =======================================================
-    // 2.5 Input Synchronizers (Metastability Protection)
-    // =======================================================
-    // assign sm_enable_meta = io_in[14];
-    // assign pix_rst_meta   = io_in[21];
-    assign sync_pix_rst_top_left  = pix_rst_sync;
-    assign sync_pix_rst_top_right = pix_rst_sync;
-    assign sync_pix_rst_bot_left  = pix_rst_sync;
-    assign sync_pix_rst_bot_right = pix_rst_sync;
 
-    // Use io_in[15] as clk, and io_in[8] as rst_n
+    // =======================================================
+    // 2. Input Synchronizers (Metastability Protection)
+    // =======================================================
+    logic sm_enable_meta1, sm_enable_meta2, sm_enable_sync;
+    logic pix_rst_meta1,   pix_rst_meta2,   pix_rst_sync;
+
+    // Use io_in[7] as clk, and io_in[8] as rst_n
     always_ff @(posedge io_in[7] or negedge io_in[8]) begin
         if (!io_in[8]) begin
             sm_enable_meta1 <= 1'b0;
@@ -135,94 +106,45 @@ module user_project_wrapper #(
             // 2-Stage Flip-Flop Synchronizer for FSM Enable
             sm_enable_meta1 <= io_in[14];
             sm_enable_meta2 <= sm_enable_meta1;
-            sm_enable_sync <= sm_enable_meta2;
+            sm_enable_sync  <= sm_enable_meta2;
 
             // 2-Stage Flip-Flop Synchronizer for Pixel Reset
-            pix_rst_meta1   <= io_in[21];
+            pix_rst_meta1   <= io_in[15]; // <--- Accurately mapped to Pin 15
             pix_rst_meta2   <= pix_rst_meta1;
             pix_rst_sync    <= pix_rst_meta2;
         end
     end
 
     // =======================================================
-    // 3. Macro Instantiations (Direct Port Mappings)
+    // 3. OpenDVS Core Complex Instantiation
     // =======================================================
 
-    final_top3 final_top_inst (
-        `ifdef USE_POWER_PINS
-            .vccd1(vccd1),
-            .vssd1(vssd1),
-        `endif
-        // External Digital IO (Direct from Caravel Pads)
-        .clk(io_in[7]),
-        .rst_n(io_in[8]),
-        .CS_N(io_in[9]),
-        // .sm_enable(io_in[14]),
-        .sm_enable(sm_enable_sync), //changed for metastability
-        .COPI(io_in[13:10]),
-        .CIPO(io_out[19:16]),
-        .data_ready_top(io_out[20]),
-        // .pix_rst_global_in(io_in[21]),
-        .pix_rst_global_in(pix_rst_sync), //changed for metastability
-
-        // DAC Configs
-        .dac_config_0(dac_config_0), .dac_config_1(dac_config_1),
-        .dac_config_2(dac_config_2), .dac_config_3(dac_config_3),
-        .dac_config_4(dac_config_4), .dac_config_5(dac_config_5),
-        .dac_config_6(dac_config_6), .dac_config_7(dac_config_7),
-        .dac_config_8(dac_config_8), .dac_config_9(dac_config_9),
-
-        // Analog Interconnects
-        .array_col_top_left(array_col_top_left),           .array_col_top_right(array_col_top_right),
-        .col_event_rst_top_left(col_event_rst_top_left),   .col_event_rst_top_right(col_event_rst_top_right),
-        .array_col_bot_left(array_col_bot_left),           .array_col_bot_right(array_col_bot_right),
-        .col_event_rst_bot_left(col_event_rst_bot_left),   .col_event_rst_bot_right(col_event_rst_bot_right),
-        .row_on_detect_top(row_on_detect_top),             .row_off_detect_top(row_off_detect_top),
-        .row_on_detect_bot(row_on_detect_bot),             .row_off_detect_bot(row_off_detect_bot),
-        .pre_charge_global_top(pre_charge_global_top),     .detect_pulse_global_top(detect_pulse_global_top),
-        .pre_charge_global_bot(pre_charge_global_bot),     .detect_pulse_global_bot(detect_pulse_global_bot)
-
-        // Analog Imager Reset
-        // .pix_rst_global_top_left  (sync_pix_rst_top_left),
-        // .pix_rst_global_bot_left  (sync_pix_rst_bot_left),
-        // .pix_rst_global_top_right (sync_pix_rst_top_right),
-        // .pix_rst_global_bot_right (sync_pix_rst_bot_right)
-    );
-
-    (* keep *)
-    Imager_Top_no_m5 analog_imager_inst (
+    open_dvs_top core_complex_inst (
         `ifdef USE_POWER_PINS
             .vdda1(vdda1),
             .vssa1(vssa1),
+            .vccd1(vccd1),
+            .vssd1(vssd1),
         `endif
-        // North/South Columns
-        .array_col_top_left(array_col_top_left),           .array_col_top_right(array_col_top_right),
-        .col_event_rst_top_left(col_event_rst_top_left),   .col_event_rst_top_right(col_event_rst_top_right),
-        .array_col_bot_left(array_col_bot_left),           .array_col_bot_right(array_col_bot_right),
-        .col_event_rst_bot_left(col_event_rst_bot_left),   .col_event_rst_bot_right(col_event_rst_bot_right),
-        
-        // West Rows
-        .row_on_detect_top(row_on_detect_top),             .row_off_detect_top(row_off_detect_top),
-        .row_on_detect_bot(row_on_detect_bot),             .row_off_detect_bot(row_off_detect_bot),
-        
-        // Globals 
-        .pre_charge_global_top_left(pre_charge_global_top[0]),     .pre_charge_global_top_right(pre_charge_global_top[1]),
-        .detect_pulse_global_top_left(detect_pulse_global_top[0]), .detect_pulse_global_top_right(detect_pulse_global_top[1]),
-        .pre_charge_global_bot_left(pre_charge_global_bot[0]),     .pre_charge_global_bot_right(pre_charge_global_bot[1]),
-        .detect_pulse_global_bot_left(detect_pulse_global_bot[0]), .detect_pulse_global_bot_right(detect_pulse_global_bot[1]),
-        
-        // East DACs
-        .dac_config_0(dac_config_0), .dac_config_1(dac_config_1),
-        .dac_config_2(dac_config_2), .dac_config_3(dac_config_3),
-        .dac_config_4(dac_config_4), .dac_config_5(dac_config_5),
-        .dac_config_6(dac_config_6), .dac_config_7(dac_config_7),
-        .dac_config_8(dac_config_8), .dac_config_9(dac_config_9),
 
-        // Synchronized reset from the digital blocks
-        .pix_rst_global_top_left  (sync_pix_rst_top_left),
-        .pix_rst_global_bot_left  (sync_pix_rst_bot_left),
-        .pix_rst_global_top_right (sync_pix_rst_top_right),
-        .pix_rst_global_bot_right (sync_pix_rst_bot_right)
+        // System Control
+        .clk(io_in[7]),
+        .rst_n(io_in[8]),
+        .sm_enable(sm_enable_sync),          // Synchronized Input
+        .pix_rst_global_in(pix_rst_sync),    // Synchronized Input
+
+        // SPI Interface
+        .CS_N(io_in[9]),
+        .COPI(io_in[13:10]),
+        .CIPO(io_out[19:16]),                // Direct output map drives io_out natively
+
+        // Status Flags
+        .data_ready_top(io_out[20]),         // Direct output map drives io_out natively
+
+        // Analog Override (10 Pins)
+        // analog_io index = mprj_io pin_number - 7
+        // Therefore, mprj_io[26:35] maps to analog_io[19:28]
+        .pad_bias(analog_io[28:19])
     );
 
 endmodule
