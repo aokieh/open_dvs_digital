@@ -24,21 +24,21 @@
 
 `define FINE_CODE_WIDTH 8
 
-`define NUM_FINE_CODES 10
+`define NUM_FINE_CODES 11
 
 `define nFINE_CODE_WIDTH 8
 
-`define NUM_nFINE_CODES 10
+`define NUM_nFINE_CODES 11
 
 `define COARSE_CODE_WIDTH 8
 
-`define NUM_COARSE_CODES 10
+`define NUM_COARSE_CODES 11
 
-`define BIAS_COMBINED_WIDTH 10
+`define BIAS_COMBINED_WIDTH 11
 
-`define NUM_BIAS_COMBINED 10
+`define NUM_BIAS_COMBINED 11
 
-`define NUM_AMUX_IO_PADS 10
+`define NUM_AMUX_IO_PADS 11
 
 //------------------------------
 // Array size parameters
