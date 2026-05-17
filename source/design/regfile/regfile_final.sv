@@ -51,7 +51,7 @@ module regfile (
     // input  logic                    fifo_empty,
     // input  logic                    fifo_full,
     // output logic                    fifo_rd_en_reg,
-    input  logic [`FIFO_AWIDTH-1:0] fifo_numel_reg,
+    // input  logic [`FIFO_AWIDTH-1:0] fifo_numel_reg,
     input  logic [`FIFO_AWIDTH-1:0] fifo_debug_top,
     input  logic [`FIFO_AWIDTH-1:0] fifo_debug_bot,
     // input  logic [ `FIFO_WIDTH-1:0] fifo_rdata,
@@ -64,16 +64,16 @@ module regfile (
 
     // DAC
     // output logic [`DAC_WIDTH-1:0] dac_config [`NUM_DACS],
-    output logic [`DAC_WIDTH-1:0] dac_config_0,
-    output logic [`DAC_WIDTH-1:0] dac_config_1,
-    output logic [`DAC_WIDTH-1:0] dac_config_2,
-    output logic [`DAC_WIDTH-1:0] dac_config_3,
-    output logic [`DAC_WIDTH-1:0] dac_config_4, 
-    output logic [`DAC_WIDTH-1:0] dac_config_5,
-    output logic [`DAC_WIDTH-1:0] dac_config_6,
-    output logic [`DAC_WIDTH-1:0] dac_config_7,
-    output logic [`DAC_WIDTH-1:0] dac_config_8,
-    output logic [`DAC_WIDTH-1:0] dac_config_9,
+    // output logic [`DAC_WIDTH-1:0] dac_config_0,
+    // output logic [`DAC_WIDTH-1:0] dac_config_1,
+    // output logic [`DAC_WIDTH-1:0] dac_config_2,
+    // output logic [`DAC_WIDTH-1:0] dac_config_3,
+    // output logic [`DAC_WIDTH-1:0] dac_config_4, 
+    // output logic [`DAC_WIDTH-1:0] dac_config_5,
+    // output logic [`DAC_WIDTH-1:0] dac_config_6,
+    // output logic [`DAC_WIDTH-1:0] dac_config_7,
+    // output logic [`DAC_WIDTH-1:0] dac_config_8,
+    // output logic [`DAC_WIDTH-1:0] dac_config_9,
 
     // FSM
     output logic                     fsm_rst_n_reg,
@@ -106,6 +106,7 @@ module regfile (
     output logic [`FINE_CODE_WIDTH-1:0] fine_code_7,
     output logic [`FINE_CODE_WIDTH-1:0] fine_code_8,
     output logic [`FINE_CODE_WIDTH-1:0] fine_code_9,
+    output logic [`FINE_CODE_WIDTH-1:0] fine_code_10,
 
     output logic [`nFINE_CODE_WIDTH-1:0] nfine_code_0,
     output logic [`nFINE_CODE_WIDTH-1:0] nfine_code_1,
@@ -117,6 +118,7 @@ module regfile (
     output logic [`nFINE_CODE_WIDTH-1:0] nfine_code_7,
     output logic [`nFINE_CODE_WIDTH-1:0] nfine_code_8,
     output logic [`nFINE_CODE_WIDTH-1:0] nfine_code_9,
+    output logic [`nFINE_CODE_WIDTH-1:0] nfine_code_10,
 
     output logic [`COARSE_CODE_WIDTH-1:0] coarse_code_0,
     output logic [`COARSE_CODE_WIDTH-1:0] coarse_code_1,
@@ -128,35 +130,46 @@ module regfile (
     output logic [`COARSE_CODE_WIDTH-1:0] coarse_code_7,
     output logic [`COARSE_CODE_WIDTH-1:0] coarse_code_8,
     output logic [`COARSE_CODE_WIDTH-1:0] coarse_code_9,
+    output logic [`COARSE_CODE_WIDTH-1:0] coarse_code_10,
 
     output logic [`BIAS_COMBINED_WIDTH-1:0] LowBiasInterfaceEn,
     output logic [`BIAS_COMBINED_WIDTH-1:0] nLowBiasInterfaceEn,//inv LowBiasInterfaceEn
     output logic [`BIAS_COMBINED_WIDTH-1:0] CoarseOneHotLowBiasEn,
-    output logic [`BIAS_COMBINED_WIDTH-1:0] LowBiasBuffEn,
-    output logic [`BIAS_COMBINED_WIDTH-1:0] nLowBiasBuffEn, //inv nLowBiasBuffEn
-    output logic [`BIAS_COMBINED_WIDTH-1:0] nBiasEn,
-    output logic [`BIAS_COMBINED_WIDTH-1:0] pBiasEn,        //inv pBiasEn
+    // output logic [`BIAS_COMBINED_WIDTH-1:0] LowBiasBuffEn,
+    // output logic [`BIAS_COMBINED_WIDTH-1:0] nLowBiasBuffEn, //inv nLowBiasBuffEn
+    output logic [`BIAS_COMBINED_WIDTH-1:0] NBiasEn,
+    output logic [`BIAS_COMBINED_WIDTH-1:0] PBiasEn,        //inv pBiasEn
     output logic [`BIAS_COMBINED_WIDTH-1:0] BiasEnable,
-    output logic [`BIAS_COMBINED_WIDTH-1:0] BiasDisable     //inv BiasEnable
+    output logic [`BIAS_COMBINED_WIDTH-1:0] BiasDisabled,     //inv BiasEnable
+
+    output logic [`BIAS_COMBINED_WIDTH-1:0] BIT0,
+    output logic [`BIAS_COMBINED_WIDTH-1:0] PowerDown,
+    output logic [`FINE_CODE_WIDTH-1:0]  FineCodeBuffer,
+    output logic [`nFINE_CODE_WIDTH-1:0]  nFineCodeBuffer,
+    output logic [`COARSE_CODE_WIDTH-1:0]  CoarseOneHotBuffer,
+
+    output logic LowBiasInterfaceEnBuffer,
+    output logic nLowBiasInterfaceEnBuffer,
+    output logic CoarseOneHotLowBiasEnBuffer
 );
     localparam ROW_DIV = $clog2(`LSB_DIV);
     logic [`RF_WIDTH-1:0] mem_in  [`RF_DEPTH];
     logic [`RF_WIDTH-1:0] mem_out [`RF_DEPTH];
 
     //  DAC assignments (Registers <--> Ports)
-    logic [`DAC_WIDTH-1:0] dac_configs [`NUM_DACS];
+    // logic [`DAC_WIDTH-1:0] dac_configs [`NUM_DACS];
 
-    assign dac_config_0 = dac_configs[0];
-    assign dac_config_1 = dac_configs[1];
-    assign dac_config_2 = dac_configs[2];
-    assign dac_config_3 = dac_configs[3];
+    // assign dac_config_0 = dac_configs[0];
+    // assign dac_config_1 = dac_configs[1];
+    // assign dac_config_2 = dac_configs[2];
+    // assign dac_config_3 = dac_configs[3];
 
-    assign dac_config_4 = dac_configs[4];
-    assign dac_config_5 = dac_configs[5];
-    assign dac_config_6 = dac_configs[6];
-    assign dac_config_7 = dac_configs[7];
-    assign dac_config_8 = dac_configs[8];
-    assign dac_config_9 = dac_configs[9];
+    // assign dac_config_4 = dac_configs[4];
+    // assign dac_config_5 = dac_configs[5];
+    // assign dac_config_6 = dac_configs[6];
+    // assign dac_config_7 = dac_configs[7];
+    // assign dac_config_8 = dac_configs[8];
+    // assign dac_config_9 = dac_configs[9];
 
     //  Fine Code assignments (Registers <--> Bias Gen)
     logic [`FINE_CODE_WIDTH-1:0] fine_codes [`NUM_FINE_CODES];
@@ -166,12 +179,12 @@ module regfile (
     assign fine_code_2 = fine_codes[2];
     assign fine_code_3 = fine_codes[3];
     assign fine_code_4 = fine_codes[4];
-
     assign fine_code_5 = fine_codes[5];
     assign fine_code_6 = fine_codes[6];
     assign fine_code_7 = fine_codes[7];
     assign fine_code_8 = fine_codes[8];
     assign fine_code_9 = fine_codes[9];
+    assign fine_code_10 = fine_codes[10];
 
     //  nFine Code assignments (Registers <--> Bias Gen)
     logic [`nFINE_CODE_WIDTH-1:0] nfine_codes [`NUM_nFINE_CODES];
@@ -181,12 +194,12 @@ module regfile (
     assign nfine_code_2 = nfine_codes[2];
     assign nfine_code_3 = nfine_codes[3];
     assign nfine_code_4 = nfine_codes[4];
-
     assign nfine_code_5 = nfine_codes[5];
     assign nfine_code_6 = nfine_codes[6];
     assign nfine_code_7 = nfine_codes[7];
     assign nfine_code_8 = nfine_codes[8];
     assign nfine_code_9 = nfine_codes[9];
+    assign nfine_code_10 = nfine_codes[10];
 
     //  Coarse Code assignments (Registers <--> Bias Gen)
     logic [`COARSE_CODE_WIDTH-1:0] coarse_one_hot_codes [`NUM_COARSE_CODES];
@@ -196,12 +209,12 @@ module regfile (
     assign coarse_code_2 = coarse_one_hot_codes[2];
     assign coarse_code_3 = coarse_one_hot_codes[3];
     assign coarse_code_4 = coarse_one_hot_codes[4];
-
     assign coarse_code_5 = coarse_one_hot_codes[5];
     assign coarse_code_6 = coarse_one_hot_codes[6];
     assign coarse_code_7 = coarse_one_hot_codes[7];
     assign coarse_code_8 = coarse_one_hot_codes[8];
     assign coarse_code_9 = coarse_one_hot_codes[9];
+    assign coarse_code_10 = coarse_one_hot_codes[10];
 
     //---------------------------------------------------------------
     // RW/RO Mappings
@@ -244,9 +257,9 @@ module regfile (
         `mem_map(pad_bias_disable, 14)
 
         // DACs 
-        for (int i = 0; i < `NUM_DACS; i++) begin
-            `mem_map(dac_configs[i], i*2 + 20)
-        end
+        // for (int i = 0; i < `NUM_DACS; i++) begin
+        //     `mem_map(dac_configs[i], i*2 + 20)
+        // end
 
         // Fine Code Regs (8-bit) - Addresses 40 to 49 (Starting at Row 10)
         for (int i = 0; i < `NUM_FINE_CODES; i++) begin
@@ -268,12 +281,26 @@ module regfile (
         `mem_map(LowBiasInterfaceEn,    76) // takes 2 bytes for 10-bits
         `mem_map(nLowBiasInterfaceEn,   78)
         `mem_map(CoarseOneHotLowBiasEn, 80)
-        `mem_map(LowBiasBuffEn,         82)
-        `mem_map(nLowBiasBuffEn,        84)
-        `mem_map(nBiasEn,               86)
-        `mem_map(pBiasEn,               88)
+        // `mem_map(LowBiasBuffEn,         82)
+        // `mem_map(nLowBiasBuffEn,        84)
+        `mem_map(NBiasEn,               86)
+        `mem_map(PBiasEn,               88)
         `mem_map(BiasEnable,            90)
-        `mem_map(BiasDisable,           92)
+        `mem_map(BiasDisabled,           92)
+
+        // New 11-bit Control Registers (Takes 2 bytes each)
+        `mem_map(BIT0, 94)
+        `mem_map(PowerDown, 96)
+        
+        // New 8-bit Buffer Registers (Takes 1 byte each)
+        `mem_map(FineCodeBuffer, 98)
+        `mem_map(nFineCodeBuffer, 99)
+        `mem_map(CoarseOneHotBuffer, 100)
+        
+        // New 1-bit Buffer Enables (Can share a single byte)
+        `mem_map(LowBiasInterfaceEnBuffer, 101)
+        `mem_map(nLowBiasInterfaceEnBuffer, 102)
+        `mem_map(CoarseOneHotLowBiasEnBuffer, 103)
 
         // next available address is byte 94
 
