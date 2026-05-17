@@ -119,7 +119,7 @@ module user_project_wrapper #(
     // 3. OpenDVS Core Complex Instantiation
     // =======================================================
 
-    open_dvs_top core_complex_inst (
+    open_dvs_top core_inst (
         `ifdef USE_POWER_PINS
             .vdda1(vdda1),
             .vssa1(vssa1),
@@ -144,7 +144,9 @@ module user_project_wrapper #(
         // Analog Override (10 Pins)
         // analog_io index = mprj_io pin_number - 7
         // Therefore, mprj_io[26:35] maps to analog_io[19:28]
-        .pad_bias(analog_io[28:19])
+        .pad_bias(analog_io[28:19]),
+        // Single Analog Receiver (rx) -> Maps to mprj_io[25]
+        .rx(analog_io[18])
     );
 
 endmodule
