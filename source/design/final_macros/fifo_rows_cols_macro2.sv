@@ -16,6 +16,10 @@ module fifo_rows_cols_macro2 (
     input  logic         sys_clk,
     input  logic         rst_n,
 
+    // --- NEW: Software Resets from RegFile ---
+    input  logic         fifo_rst_n,
+    input  logic         fsm_rst_n,
+
     // Control Plane (From RegFile)
     input  logic         sm_enable,
     input  logic [7:0]   program_bits,
@@ -68,7 +72,11 @@ module fifo_rows_cols_macro2 (
     output logic [15:0]                 rdata_spi_bot,
     output logic                        empty_fifo_bot,
     output logic                        full_fifo_bot,
-    output logic [`FIFO_AWIDTH-1:0]     numel_fifo_bot
+    output logic [`FIFO_AWIDTH-1:0]     numel_fifo_bot,
+
+    // --- NEW: FSM Debug Outputs ---
+    output logic [7:0]                  fsm_ctrl_byte_top,
+    output logic [7:0]                  fsm_ctrl_byte_bot
 );
 
     // -----------------------------------------------------------------
@@ -99,6 +107,18 @@ module fifo_rows_cols_macro2 (
     logic       fifo_wr_en_bot;
     logic [1:0] event_mode_bot;
 
+    logic fsm_row_rst_n_top, fsm_row_rst_n_bot;
+    logic col_rst_n_top, col_rst_n_bot;
+
+    // Concatenate the Event Mode [7:6] and the Row Address [5:0]
+    assign fsm_ctrl_byte_top = {event_mode_top, row_addr_top};
+    assign fsm_ctrl_byte_bot = {event_mode_bot, row_addr_bot};
+
+    assign fsm_row_rst_n_top = rst_n & ~fsm_rst_n_reg;
+    assign fsm_row_rst_n_bot = rst_n & ~fsm_rst_n_reg;
+    assign col_rst_n_top     = rst_n & ~fifo_rst_n_reg;
+    assign col_rst_n_bot     = rst_n & ~fifo_rst_n_reg;
+
     // =================================================================
     // TOP TIER INSTANTIATIONS (Rows 0-63)
     // =================================================================
@@ -110,7 +130,8 @@ module fifo_rows_cols_macro2 (
         `endif
 
         .sys_clk           (sys_clk),
-        .rst_n             (rst_n),
+        // .rst_n             (rst_n),
+        .rst_n             (fsm_row_rst_n_top),
         .sm_enable         (sm_enable),
         .program_bits      (program_bits),
 
@@ -147,7 +168,8 @@ module fifo_rows_cols_macro2 (
         `endif
 
         .clk                 (sys_clk),
-        .rst_n               (rst_n),
+        // .rst_n               (rst_n),
+        .rst_n               (col_rst_n_top),
         
         .array_col_left      (array_col_top_left),
         .array_col_right     (array_col_top_right),
@@ -183,7 +205,8 @@ module fifo_rows_cols_macro2 (
         `endif
 
         .sys_clk           (sys_clk),
-        .rst_n             (rst_n),
+        // .rst_n             (rst_n),
+        .rst_n             (fsm_row_rst_n_bot),
         .sm_enable         (sm_enable),
         .program_bits      (program_bits),
 
@@ -220,7 +243,8 @@ module fifo_rows_cols_macro2 (
         `endif
         
         .clk                 (sys_clk),
-        .rst_n               (rst_n),
+        // .rst_n               (rst_n),
+        .rst_n               (col_rst_n_bot),
         
         .array_col_left      (array_col_bot_left),
         .array_col_right     (array_col_bot_right),
