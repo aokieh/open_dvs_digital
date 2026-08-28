@@ -36,8 +36,8 @@ module open_dvs_top (
     // an external pin, it would be added here as an `inout` port and routed 
     // down to the bias_gen block in the future.
 
-    inout logic [9:0] pad_bias,
-    inout logic       rx
+    inout wire [9:0] pad_bias,
+    inout wire       rx
 );
 
     // =======================================================

@@ -24,7 +24,7 @@
 
 
 # Testbench & DUT files for Digital Top (SPI Slave + Register File)
-../../../source/design/regfile/regfile.sv
+../../../source/design/regfile/regfile_final.sv
 ../../../source/design/regfile/spi_peripheral_re.sv
 // ../../../source/design/regfile/spi_peripheral_final.sv
 // ../../../source/design/regfile/spi_peripheral.sv
@@ -55,6 +55,10 @@
 // ../../../source/design/final_macros/final_top.sv
 // ../../../source/design/final_macros/final_top2.sv
 // ../../../source/design/final_macros/final_top2_final.sv <-- prev final
+../../../source/design/common/rst_sync.sv
+../../../source/design/hardware_codec/sync/enc128_v2_vendored.sv
+../../../source/design/hardware_codec/sync/opendvs_sync_product_encoder_core.sv
+../../../source/design/hardware_codec/control/opendvs_sync_mode_ownership_shell.sv
 ../../../source/design/final_macros/final_top3.sv
 // ../fifo_rows_cols_macro_tb.sv
 // ../fifo_rows_cols_macro2_tb.sv
