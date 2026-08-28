@@ -15,6 +15,7 @@ module fifo_rows_cols_macro2 (
 
     input  logic         sys_clk,
     input  logic         rst_n,
+    input  logic         stream_abort,
 
     // --- NEW: Software Resets from RegFile ---
     input  logic         fifo_rst_n,
@@ -31,6 +32,12 @@ module fifo_rows_cols_macro2 (
     input  logic [13:0]  p_on_detect,
     input  logic [13:0]  p_off_detect,
     input  logic [13:0]  p_rst,
+
+    // Source observations before legacy FIFO full suppression
+    output logic         top_record_valid_o,
+    output logic [135:0] top_record_o,
+    output logic         bottom_record_valid_o,
+    output logic [135:0] bottom_record_o,
 
     // -----------------------------------------------------------
     // Analog Array Interfaces (128x128 Grid)
@@ -114,10 +121,10 @@ module fifo_rows_cols_macro2 (
     assign fsm_ctrl_byte_top = {event_mode_top, row_addr_top};
     assign fsm_ctrl_byte_bot = {event_mode_bot, row_addr_bot};
 
-    assign fsm_row_rst_n_top = rst_n & ~fsm_rst_n_reg;
-    assign fsm_row_rst_n_bot = rst_n & ~fsm_rst_n_reg;
-    assign col_rst_n_top     = rst_n & ~fifo_rst_n_reg;
-    assign col_rst_n_bot     = rst_n & ~fifo_rst_n_reg;
+    assign fsm_row_rst_n_top = rst_n & ~fsm_rst_n;
+    assign fsm_row_rst_n_bot = rst_n & ~fsm_rst_n;
+    assign col_rst_n_top     = rst_n & ~fifo_rst_n;
+    assign col_rst_n_bot     = rst_n & ~fifo_rst_n;
 
     // =================================================================
     // TOP TIER INSTANTIATIONS (Rows 0-63)
@@ -170,6 +177,7 @@ module fifo_rows_cols_macro2 (
         .clk                 (sys_clk),
         // .rst_n               (rst_n),
         .rst_n               (col_rst_n_top),
+        .stream_abort        (stream_abort),
         
         .array_col_left      (array_col_top_left),
         .array_col_right     (array_col_top_right),
@@ -186,6 +194,8 @@ module fifo_rows_cols_macro2 (
         .fifo_wr_en          (fifo_wr_en_top),
         .row_addr            (row_addr_top),
         .event_mode          (event_mode_top),
+        .source_record_valid_o(top_record_valid_o),
+        .source_record_o     (top_record_o),
         
         .shift_en_fifo       (shift_en_top),
         .rdata_spi           (rdata_spi_top),
@@ -245,6 +255,7 @@ module fifo_rows_cols_macro2 (
         .clk                 (sys_clk),
         // .rst_n               (rst_n),
         .rst_n               (col_rst_n_bot),
+        .stream_abort        (stream_abort),
         
         .array_col_left      (array_col_bot_left),
         .array_col_right     (array_col_bot_right),
@@ -261,6 +272,8 @@ module fifo_rows_cols_macro2 (
         .fifo_wr_en          (fifo_wr_en_bot),
         .row_addr            (row_addr_bot),
         .event_mode          (event_mode_bot),
+        .source_record_valid_o(bottom_record_valid_o),
+        .source_record_o     (bottom_record_o),
         
         .shift_en_fifo       (shift_en_bot),
         .rdata_spi           (rdata_spi_bot),

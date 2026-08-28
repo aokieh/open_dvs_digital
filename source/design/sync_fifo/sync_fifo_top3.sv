@@ -23,6 +23,7 @@ module sync_fifo_top3 (
 
     input  logic                   clk,
     input  logic                   rst_n,
+    input  logic                   stream_abort,
 
     // FIFO Write Interface (From ROIC Micro-Sequencer)
     input  logic                   wr_en_fifo,
@@ -71,6 +72,7 @@ module sync_fifo_top3 (
         `endif
         .clk        (clk),
         .rst_n      (rst_n),
+        .stream_abort(stream_abort),
         .rdata_fifo (rdata_fifo),       // Read data bus from FIFO
         .fifo_empty (empty_fifo),       // Prevents shifting garbage data
         .shift_en   (shift_en_fifo),    // Shift trigger from QSPI

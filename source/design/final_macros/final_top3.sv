@@ -101,6 +101,7 @@ module final_top3 (
     logic [ `RF_WIDTH-1:0] wdata_reg;
     logic [  `RF_MASK-1:0] wmask_reg;
     logic [ `RF_WIDTH-1:0] rdata_reg;
+    logic [ `RF_WIDTH-1:0] regfile_rdata_reg;
     
     // Internal Debug Wires (Read-only via Testbench)
     logic                  we_out;
@@ -123,10 +124,35 @@ module final_top3 (
     logic [15:0] rdata_spi_0; // Top Tier
     logic [15:0] rdata_spi_1; // Bottom Tier
     logic [1:0]  shift_en_fifo;
+    logic [15:0] raw_rdata_spi_0;
+    logic [15:0] raw_rdata_spi_1;
+    logic [1:0]  raw_shift_en_fifo;
+    logic [1:0]  sync_shift_en_fifo;
+    logic serial_beat_complete;
+    (* ASYNC_REG = "TRUE" *) logic [1:0] cs_n_sync_pipe;
+    logic cs_n_sync_d;
+    logic stream_abort;
+    logic ownership_quiescent;
+
+    // CS_N is asynchronous to clk. Only the first synchronizer stage samples
+    // the pad; the serializer sees a full-cycle pulse made from settled stages.
+    always_ff @(posedge clk or negedge rst_n) begin
+        if (!rst_n) begin
+            cs_n_sync_pipe <= 2'b11;
+            cs_n_sync_d    <= 1'b1;
+        end else begin
+            cs_n_sync_pipe[0] <= CS_N;
+            cs_n_sync_pipe[1] <= cs_n_sync_pipe[0];
+            cs_n_sync_d       <= cs_n_sync_pipe[1];
+        end
+    end
+    assign stream_abort = cs_n_sync_pipe[1] & ~cs_n_sync_d;
+    assign ownership_quiescent = cs_n_sync_pipe[1] & cs_n_sync_d;
 
     // Core FIFO Status Flags
     logic empty_fifo_top, full_fifo_top;
     logic empty_fifo_bot, full_fifo_bot;
+    logic raw_data_ready_fifo;
     logic data_ready_fifo;
 
     logic [`FIFO_AWIDTH-1:0] numel_fifo_top;
@@ -136,14 +162,104 @@ module final_top3 (
     logic [7:0] fsm_ctrl_byte_top_wire;
     logic [7:0] fsm_ctrl_byte_bot_wire;
 
+    // Pre-framing source observations and disabled product-core state
+    logic top_record_valid;
+    logic [135:0] top_record;
+    logic bottom_record_valid;
+    logic [135:0] bottom_record;
+    logic sync_product_rst_n;
+    logic sync_top_record_accepted;
+    logic sync_bottom_record_accepted;
+    logic sync_top_fragment_valid;
+    logic sync_top_fragment_raw;
+    logic [4:0] sync_top_fragment_length;
+    logic [135:0] sync_top_fragment_payload;
+    logic sync_bottom_fragment_valid;
+    logic sync_bottom_fragment_raw;
+    logic [4:0] sync_bottom_fragment_length;
+    logic [135:0] sync_bottom_fragment_payload;
+    logic sync_product_quiescent;
+    logic [31:0] sync_accepted_count;
+    logic [31:0] sync_empty_suppressed_count;
+    logic [31:0] sync_illegal_label_count;
+    logic [31:0] sync_disabled_suppressed_count;
+    logic [31:0] sync_overflow_count;
+    logic [31:0] sync_sparse_count;
+    logic [31:0] sync_raw_count;
+    logic [31:0] sync_retired_count;
+    logic sync_sticky_fault;
+
 
     // assign fifo_numel_combined = numel_fifo_top | numel_fifo_bot;
     assign fifo_debug_top_wire = {2'b00, empty_fifo_top, full_fifo_top, numel_fifo_top};
     assign fifo_debug_bot_wire = {2'b00, empty_fifo_bot, full_fifo_bot, numel_fifo_bot};
     
     // Aggregate the data ready mode (EXACT same gate delays)
-    assign data_ready_fifo = ~empty_fifo_top & ~empty_fifo_bot;
-    assign data_ready_top  = ~empty_fifo_top & ~empty_fifo_bot;
+    assign raw_data_ready_fifo = ~empty_fifo_top & ~empty_fifo_bot;
+    assign data_ready_top      = data_ready_fifo;
+
+    opendvs_sync_mode_ownership_shell i_sync_mode_ownership (
+        .clk_i               (clk),
+        .rst_ni              (rst_n),
+        .we_reg_i            (we_reg),
+        .addr_reg_i          (addr_reg),
+        .wdata_reg_i         (wdata_reg),
+        .wmask_reg_i         (wmask_reg),
+        .regfile_rdata_i     (regfile_rdata_reg),
+        .regfile_rdata_o     (rdata_reg),
+        .serial_consume_i    (shift_en_fifo),
+        .raw_consume_o       (raw_shift_en_fifo),
+        .sync_consume_o      (sync_shift_en_fifo),
+        .raw_ready_i         (raw_data_ready_fifo),
+        .sync_ready_i        (1'b0),
+        .selected_ready_o    (data_ready_fifo),
+        .raw_data_0_i        (raw_rdata_spi_0),
+        .raw_data_1_i        (raw_rdata_spi_1),
+        .sync_data_0_i       (16'b0),
+        .sync_data_1_i       (16'b0),
+        .selected_data_0_o   (rdata_spi_0),
+        .selected_data_1_o   (rdata_spi_1),
+        .sync_available_i    (1'b0),
+        .quiescent_i         (ownership_quiescent)
+    );
+
+    rst_sync i_sync_product_reset (
+        .clk        (clk),
+        .rst_n      (rst_n),
+        .rst_sync_n (sync_product_rst_n)
+    );
+
+    opendvs_sync_product_encoder_core i_sync_product_encoder_core (
+        .clk_i                       (clk),
+        .arst_ni                     (sync_product_rst_n),
+        .admit_enable_i              (1'b0),
+        .top_record_valid_i          (top_record_valid),
+        .top_record_i                (top_record),
+        .top_record_accepted_o       (sync_top_record_accepted),
+        .bottom_record_valid_i       (bottom_record_valid),
+        .bottom_record_i             (bottom_record),
+        .bottom_record_accepted_o    (sync_bottom_record_accepted),
+        .top_fragment_valid_o        (sync_top_fragment_valid),
+        .top_fragment_ready_i        (1'b0),
+        .top_fragment_raw_o          (sync_top_fragment_raw),
+        .top_fragment_length_o       (sync_top_fragment_length),
+        .top_fragment_payload_o      (sync_top_fragment_payload),
+        .bottom_fragment_valid_o     (sync_bottom_fragment_valid),
+        .bottom_fragment_ready_i     (1'b0),
+        .bottom_fragment_raw_o       (sync_bottom_fragment_raw),
+        .bottom_fragment_length_o    (sync_bottom_fragment_length),
+        .bottom_fragment_payload_o   (sync_bottom_fragment_payload),
+        .quiescent_o                 (sync_product_quiescent),
+        .accepted_count_o            (sync_accepted_count),
+        .empty_suppressed_count_o    (sync_empty_suppressed_count),
+        .illegal_label_count_o       (sync_illegal_label_count),
+        .disabled_suppressed_count_o (sync_disabled_suppressed_count),
+        .overflow_count_o            (sync_overflow_count),
+        .sparse_count_o              (sync_sparse_count),
+        .raw_count_o                 (sync_raw_count),
+        .retired_count_o             (sync_retired_count),
+        .sticky_fault_o              (sync_sticky_fault)
+    );
 
 
     // ---------------------------------------------------
@@ -175,7 +291,8 @@ module final_top3 (
         .rdata_spi_0   (rdata_spi_0),
         .rdata_spi_1   (rdata_spi_1),
         .shift_en_fifo (shift_en_fifo),
-        .data_ready_spi(data_ready_fifo)
+        .data_ready_spi(data_ready_fifo),
+        .serial_beat_complete_o(serial_beat_complete)
     );
 
     // ---------------------------------------------------
@@ -189,7 +306,8 @@ module final_top3 (
         .rst_n(rst_n),
 
         // Memory Interface (SPI <-> Mem)
-        .addr_reg, .we_reg, .wdata_reg, .wmask_reg, .rdata_reg,
+        .addr_reg, .we_reg, .wdata_reg, .wmask_reg,
+        .rdata_reg(regfile_rdata_reg),
 
         // SPI Debug Wires
         .opcode_0_reg(opcode_0_reg),
@@ -250,6 +368,7 @@ module final_top3 (
         
         .sys_clk      (clk),
         .rst_n        (rst_n),
+        .stream_abort (stream_abort),
         
         // Connect Resets internally from Regfile
         .fifo_rst_n   (fifo_rst_n_reg),
@@ -263,6 +382,11 @@ module final_top3 (
         .p_on_detect  (p_on_detect),
         .p_off_detect (p_off_detect),
         .p_rst        (p_rst),
+
+        .top_record_valid_o    (top_record_valid),
+        .top_record_o          (top_record),
+        .bottom_record_valid_o (bottom_record_valid),
+        .bottom_record_o       (bottom_record),
 
         // Top Tier Analog
         .array_col_top_left      (array_col_top_left),
@@ -285,14 +409,14 @@ module final_top3 (
         .row_off_detect_bot      (row_off_detect_bot),
 
         // Q-SPI Readout Interconnects
-        .shift_en_top   (shift_en_fifo[0]),
-        .rdata_spi_top  (rdata_spi_0),
+        .shift_en_top   (raw_shift_en_fifo[0]),
+        .rdata_spi_top  (raw_rdata_spi_0),
         .empty_fifo_top (empty_fifo_top),
         .full_fifo_top  (full_fifo_top),
         .numel_fifo_top (numel_fifo_top),
 
-        .shift_en_bot   (shift_en_fifo[1]),
-        .rdata_spi_bot  (rdata_spi_1),
+        .shift_en_bot   (raw_shift_en_fifo[1]),
+        .rdata_spi_bot  (raw_rdata_spi_1),
         .empty_fifo_bot (empty_fifo_bot),
         .full_fifo_bot  (full_fifo_bot),
         .numel_fifo_bot (numel_fifo_bot),

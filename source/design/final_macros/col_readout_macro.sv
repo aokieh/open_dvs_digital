@@ -14,6 +14,7 @@ module col_readout_macro (
 
     input  logic                   clk,
     input  logic                   rst_n,
+    input  logic                   stream_abort,
 
     // -----------------------------------------------------------
     // Interface to Analog Array (Quadrant Column-Wise)
@@ -38,6 +39,9 @@ module col_readout_macro (
     input  logic                   fifo_wr_en,
     input  logic [5:0]             row_addr,
     input  logic [1:0]             event_mode, 
+
+    output logic                   source_record_valid_o,
+    output logic [135:0]           source_record_o,
 
     // -----------------------------------------------------------
     // Interface to Q-SPI Peripheral (Near I/O Pads)
@@ -131,6 +135,8 @@ module col_readout_macro (
 
     // Mapping Left and Right quadrants into the 136-bit word
     assign internal_wdata_fifo = {event_mode, row_addr, col_left_m2, col_right_m2};
+    assign source_record_valid_o = fifo_wr_en;
+    assign source_record_o = {event_mode, row_addr, col_left_m2, col_right_m2};
 
     // -----------------------------------------------------------------
     // 4. Synchronous FWFT FIFO & Q-SPI Bridge
@@ -142,6 +148,7 @@ module col_readout_macro (
         `endif
         .clk           (clk),
         .rst_n         (rst_n),
+        .stream_abort  (stream_abort),
         
         // Write Interface 
         .wr_en_fifo    (fifo_wr_en),

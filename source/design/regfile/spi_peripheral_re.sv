@@ -40,7 +40,8 @@ module spi_peripheral_re (
     // Added for debug from regfile
     output logic [`RF_WIDTH-1:0] spi_last_read_data_reg,
     output logic [7:0]          opcode_0_reg,
-    output logic [7:0]          addr_0_reg
+    output logic [7:0]          addr_0_reg,
+    output logic                serial_beat_complete_o
 );
 
     logic [7:0] opcode_0;       //opcode comes from COPI[0]
@@ -87,7 +88,9 @@ module spi_peripheral_re (
             cycle_count <= 0;
             fifo_shift_count <= 0;
             shift_en_fifo <= 2'b00;
+            serial_beat_complete_o <= 1'b0;
         end else begin
+        serial_beat_complete_o <= 1'b0;
         // In data streaming mode (opcode_valid == 3'b111)
         if (opcode_valid == 3'b111) begin
             // Inside SPI FSM always_ff block:
@@ -111,6 +114,7 @@ module spi_peripheral_re (
                 shift_en_fifo <= 2'b00;
                 cycle_count <= 4'd8;              // Loop back to start shifting
                 fifo_shift_count <= fifo_shift_count + 1;
+                serial_beat_complete_o <= 1'b1;
             end
 
             // After 9 bursts, reset everything for next transaction

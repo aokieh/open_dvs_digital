@@ -14,6 +14,7 @@ module fifo_intf3 (
     
     input  logic               clk,
     input  logic               rst_n,
+    input  logic               stream_abort,
   
     // Data from FWFT FIFO
     input  logic [135:0]       rdata_fifo, 
@@ -71,7 +72,10 @@ module fifo_intf3 (
     always_ff @(posedge clk or negedge rst_n) begin
         if (!rst_n) begin
             rdata_spi <= 16'd0;
-        end 
+        end
+        else if (stream_abort) begin
+            rdata_spi <= 16'd0;
+        end
         else if (!fifo_empty) begin
             if (state == ST_SHIFT_CTRL) begin
                 // TRANSMISSION 9: Header [135:128]
@@ -103,7 +107,11 @@ module fifo_intf3 (
         if (!rst_n) begin
             state     <= ST_IDLE;
             shift_ctr <= 4'd0;
-        end 
+        end
+        else if (stream_abort) begin
+            state     <= ST_IDLE;
+            shift_ctr <= 4'd0;
+        end
         else begin
             case (state)
                 ST_IDLE: begin
