@@ -1,0 +1,5 @@
+source/design/common/rst_sync.sv
+source/design/hardware_codec/sync/enc128_v2_vendored.sv
+source/design/hardware_codec/sync/opendvs_sync_product_encoder_core.sv
+source/design/hardware_codec/control/opendvs_sync_mode_ownership_shell.sv
+fver/hardware_codec/integration/sync_product_preframing_v3/fixture_sync_product_preframing_v3.sv

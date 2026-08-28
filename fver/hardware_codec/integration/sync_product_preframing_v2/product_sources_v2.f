@@ -1,0 +1,17 @@
+source/design/common/defines.sv
+source/design/regfile/regfile_final.sv
+source/design/regfile/spi_peripheral_re.sv
+source/design/sync_fifo/sync_fifo.sv
+source/design/sync_fifo/fifo_intf3.sv
+source/design/sync_fifo/sync_fifo_top3.sv
+source/design/final_macros/col_readout_macro.sv
+source/design/roic/roic_sm2.sv
+source/design/roic/row_scanner.sv
+source/design/final_macros/row_decoder_macro2.sv
+source/design/final_macros/fifo_rows_cols_macro2.sv
+source/design/common/rst_sync.sv
+source/design/hardware_codec/sync/enc128_v2_vendored.sv
+source/design/hardware_codec/sync/opendvs_sync_product_encoder_core.sv
+source/design/hardware_codec/control/opendvs_sync_mode_ownership_shell.sv
+source/design/final_macros/final_top3.sv
+fver/hardware_codec/integration/sync_product_preframing_v2/tb_sync_product_preframing_v2.sv
