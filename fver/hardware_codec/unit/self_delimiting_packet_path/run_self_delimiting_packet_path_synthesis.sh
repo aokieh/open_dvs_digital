@@ -56,7 +56,7 @@ PY
 run_synthesis() {
     local scratch
     scratch=$(mktemp -d "$SCRATCH_PARENT/self-delimiting-packet-synthesis.XXXXXXXXXX")
-    trap 'rm -rf -- "$scratch"' EXIT HUP INT TERM
+    trap "rm -rf -- '$scratch'" EXIT HUP INT TERM
     cat >"$scratch/synth.ys" <<YOSYS
 read_verilog -sv -noautowire $PRODUCT
 hierarchy -check -top $TOP
