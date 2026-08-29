@@ -1,0 +1,1 @@
+source/design/hardware_codec/sync/opendvs_self_delimiting_packet_path.sv

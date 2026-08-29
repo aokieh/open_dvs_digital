@@ -1,0 +1,15 @@
+c15a86a974794fbd3d98a0647bc9a5e82d4841996c34be952fe722cb975dd361  /home/rpgraca/opencode-sessions/dvs-encoder/.ocs/artifacts/files/aed-codec-campaign-v0/work/hardware-codec-v1/digital-repository-integration/self-delimiting-packet-path-unit-v1.md
+96767761f802e459e7fadb9087e236f184c7ae3a94b456dafb6361395aeedccd  /home/rpgraca/opencode-sessions/dvs-encoder/.ocs/artifacts/files/aed-codec-campaign-v0/work/hardware-codec-v1/digital-repository-integration/framing-research-v4-low-cost/framing-selection-freeze-v4.md
+b414df65f9a83e7b8d8bd107149a384e68687c50199f38e85b02cf46f3a3408b  /home/rpgraca/opencode-sessions/dvs-encoder/.ocs/artifacts/files/aed-codec-campaign-v0/work/hardware-codec-v1/digital-repository-integration/framing-research-v4-low-cost/framing-low-cost-result-v4.json
+6a0c4953a0d6a92820adb83a3479b5d5d0b1c187f8852e45dc2721f817558412  /home/rpgraca/opencode-sessions/dvs-encoder/.ocs/artifacts/files/aed-codec-campaign-v0/work/hardware-codec-v1/digital-repository-integration/framing-research-v1/candidates/self-delimiting-v1/expected-bytes-v1.json
+addd877170f19440276e341fd7b6ea066daea15e79ca4b22c6b8f59660322154  /home/rpgraca/opencode-sessions/dvs-encoder/.ocs/artifacts/files/aed-codec-campaign-v0/work/hardware-codec-v1/digital-repository-integration/framing-research-v1/candidates/self-delimiting-v1/malformed-controls-v1.json
+911324388ce0936c43d0c806b4f4914924351a84d112129bb38b2926712744c0  /home/rpgraca/opencode-sessions/dvs-encoder/.ocs/artifacts/files/aed-codec-campaign-v0/work/hardware-codec-v1/digital-repository-integration/framing-research-v1/candidates/self-delimiting-v1/self_delimiting_encoder_v1.py
+e09ee26f7c77cf14bd3430fb43e36e1f368c33ae29b00c9f7383480b9418f85c  /home/rpgraca/opencode-sessions/dvs-encoder/.ocs/artifacts/files/aed-codec-campaign-v0/work/hardware-codec-v1/digital-repository-integration/framing-research-v1/candidates/self-delimiting-v1/self_delimiting_decoder_v1.py
+4e4618db4530419f488edfb7bf1d853ab8699c7fd606eab1110d643fc4a71612  /home/rpgraca/opencode-sessions/dvs-encoder/.ocs/artifacts/files/aed-codec-campaign-v0/work/hardware-codec-v1/digital-repository-integration/framing-research-v1/candidates/self-delimiting-v1/test_self_delimiting_v1.py
+cc8aa66e33dbd5d9a88b14305efb5f275829b6a54d266c1cf507c2769a8c04cb  source/design/hardware_codec/sync/opendvs_sync_product_encoder_core.sv
+1b72277a01c83c9e2f259a78fb71d5423684c1ff52021c119b79b4192f781a12  source/design/hardware_codec/control/opendvs_sync_mode_ownership_shell.sv
+29837863aaf58552d1db6d6f4189d3bab0d3301a994956155ca1d3b10bbfcced  source/design/final_macros/final_top3.sv
+949ba4bb93c801573c29fdacdff294daa4d4be923a456d6fc5d159efb4685286  source/design/regfile/spi_peripheral_re.sv
+c5ebe122e1cc3815a5e85d9afe77b9567240cad6591da975ecd7daf7c23d1a39  source/design/final_macros/fifo_rows_cols_macro2.sv
+29cf88000132c5a84020e422fe89df59beb2c7ba301b51ef406334929597c948  source/design/sync_fifo/fifo_intf3.sv
+484efc729c0c542a729ca2c88ecdff8feb7dea1998370525c1dd7732df895455  source/design/common/defines.sv
