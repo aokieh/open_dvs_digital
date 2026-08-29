@@ -31,6 +31,12 @@ readonly -a PLANTS=(
     bank_overwrite retire_on_consume abort_drops_packet abort_loses_pending
     sequence_no_wrap malformed_ack drain_early_quiescent
 )
+readonly -a PLANT_CHECKS=(
+    mutation_sparse_packet mutation_sparse_packet mutation_raw_packet
+    mutation_pair_packet early_fragment_ack bank_overwrite
+    mutation_sparse_packet mutation_abort_replay abort_pending_nonfinal
+    mutation_sequence_wrap malformed_ack drain_early_quiescent
+)
 
 SCRATCH=''
 
@@ -169,8 +175,10 @@ run_fixture_suite() {
         fail fixture_run "unplanted marker contract failed"
     }
 
-    local plant plant_log expected
-    for plant in "${PLANTS[@]}"; do
+    local plant plant_log expected index
+    for index in "${!PLANTS[@]}"; do
+        plant=${PLANTS[$index]}
+        expected=${PLANT_CHECKS[$index]}
         plant_log="$SCRATCH/fixture-plant-$plant.log"
         set +e
         env -i HOME=/tmp PATH=/usr/bin:/bin LC_ALL=C TMPDIR="$SCRATCH" \
@@ -178,27 +186,30 @@ run_fixture_suite() {
             "$VVP_BIN" "$image" "+PLANT=$plant" >"$plant_log" 2>&1
         rc=$?
         set -e
-        (( rc == 10 )) || {
+        (( rc == 1 )) || {
             print_file "$plant_log"
-            fail "plant_$plant" "fixture plant exited $rc instead of 10"
+            fail "plant_$plant" "fixture mutation exited $rc instead of ordinary assertion failure 1"
         }
-        expected="$PLANT_MARKER plant=$plant check=$plant"
         "$PYTHON" -I - "$plant_log" "$expected" "$PASS_MARKER" "$FAIL_MARKER" "$PLANT_MARKER" <<'PY' || {
 import pathlib
+import re
 import sys
 text = pathlib.Path(sys.argv[1]).read_text(errors="replace")
 lines = text.splitlines()
-expected, passed, failed, plant_marker = sys.argv[2:6]
-if lines.count(expected) != 1:
-    raise SystemExit("exact plant marker missing or repeated")
-if passed in text or failed in text:
-    raise SystemExit("plant emitted ordinary pass/fail marker")
-if sum(plant_marker in line for line in lines) != 1:
-    raise SystemExit("extra plant marker")
+expected_check, passed, failed, plant_marker = sys.argv[2:6]
+failure_lines = [line for line in lines if line.startswith(failed)]
+if len(failure_lines) != 1:
+    raise SystemExit(f"ordinary failure marker count={len(failure_lines)}")
+match = re.search(r"(?:^| )check=([^ ]+)", failure_lines[0])
+if match is None or match.group(1) != expected_check:
+    raise SystemExit(f"ordinary check={None if match is None else match.group(1)} expected={expected_check}")
+if passed in text or plant_marker in text:
+    raise SystemExit("mutated simulation emitted pass or self-certifying plant marker")
 PY
             print_file "$plant_log"
             fail "plant_$plant" "plant marker contract failed"
         }
+        printf '%s plant=%s check=%s\n' "$PLANT_MARKER" "$plant" "$expected"
     done
 }
 

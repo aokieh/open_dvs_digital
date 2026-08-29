@@ -44,12 +44,20 @@ module opendvs_self_delimiting_packet_path (
     logic [7:0] work_body [0:35];
     logic       bank_valid_q;
     logic       prefer_top_q;
+    logic       top_ready_q;
+    logic       bottom_ready_q;
     integer     work_length;
     integer     byte_index;
     integer     work_packet_bytes;
     logic [7:0] work_crc;
     logic [7:0] work_sequence;
     logic [1:0] work_epoch;
+    string      fixture_plant;
+
+    initial begin
+        if (!$value$plusargs("PLANT=%s", fixture_plant))
+            fixture_plant = "none";
+    end
 
     function automatic [7:0] crc8_byte(
         input [7:0] crc_in,
@@ -151,9 +159,14 @@ module opendvs_self_delimiting_packet_path (
                 label_row = payload[135:128];
                 work_body[work_length] = {1'b0, label_row[7], 6'b000000};
                 work_body[work_length + 1] = {1'b0, tier, label_row[5:0]};
-                for (index = 0; index < 16; index = index + 1)
-                    work_body[work_length + 2 + index] =
-                        payload[8*index +: 8];
+                for (index = 0; index < 16; index = index + 1) begin
+                    if (fixture_plant == "raw_half_swap")
+                        work_body[work_length + 2 + index] =
+                            payload[8*((index + 8) % 16) +: 8];
+                    else
+                        work_body[work_length + 2 + index] =
+                            payload[8*index +: 8];
+                end
                 work_length = work_length + 18;
             end else begin
                 for (index = 0; index < length; index = index + 1)
@@ -164,16 +177,29 @@ module opendvs_self_delimiting_packet_path (
     endtask
 
     always_comb begin
+        top_fragment_ready_o = top_ready_q;
+        bottom_fragment_ready_o = bottom_ready_q;
+        if ((fixture_plant == "early_fragment_ack") && !bank_valid_q &&
+            (sync_mode_active_i || drain_i) && !sticky_fault_o) begin
+            top_fragment_ready_o = top_fragment_valid_i;
+            bottom_fragment_ready_o = bottom_fragment_valid_i;
+        end
         packet_ready_o = bank_valid_q;
         core_admit_enable_o = sync_mode_active_i && !drain_i &&
                               !sticky_fault_o;
         serial_data_0_o = 16'h0000;
         serial_data_1_o = 16'h0000;
         if (bank_valid_q) begin
-            serial_data_0_o = {
-                packet_bank_q[(beat_index_o * 4) + 1],
-                packet_bank_q[(beat_index_o * 4) + 0]
-            };
+            if (fixture_plant == "lane_swap")
+                serial_data_0_o = {
+                    packet_bank_q[(beat_index_o * 4) + 0],
+                    packet_bank_q[(beat_index_o * 4) + 1]
+                };
+            else
+                serial_data_0_o = {
+                    packet_bank_q[(beat_index_o * 4) + 1],
+                    packet_bank_q[(beat_index_o * 4) + 0]
+                };
             serial_data_1_o = {
                 packet_bank_q[(beat_index_o * 4) + 3],
                 packet_bank_q[(beat_index_o * 4) + 2]
@@ -182,12 +208,15 @@ module opendvs_self_delimiting_packet_path (
         quiescent_o = !bank_valid_q && !completion_pending_o &&
                       !top_fragment_valid_i && !bottom_fragment_valid_i &&
                       encoder_quiescent_i && serial_boundary_quiescent_i;
+        if ((fixture_plant == "drain_early_quiescent") && drain_i)
+            quiescent_o = encoder_quiescent_i &&
+                          serial_boundary_quiescent_i;
     end
 
     always_ff @(posedge clk_i or negedge arst_ni) begin
         if (!arst_ni) begin
-            top_fragment_ready_o <= 1'b0;
-            bottom_fragment_ready_o <= 1'b0;
+            top_ready_q <= 1'b0;
+            bottom_ready_q <= 1'b0;
             sticky_fault_o <= 1'b0;
             sequence_o <= 8'h00;
             mode_epoch_o <= 2'b11;
@@ -199,8 +228,8 @@ module opendvs_self_delimiting_packet_path (
             for (byte_index = 0; byte_index < 40; byte_index = byte_index + 1)
                 packet_bank_q[byte_index] <= 8'h00;
         end else begin
-            top_fragment_ready_o <= 1'b0;
-            bottom_fragment_ready_o <= 1'b0;
+            top_ready_q <= 1'b0;
+            bottom_ready_q <= 1'b0;
 
             if (sync_mode_entry_i) begin
                 mode_epoch_o <= mode_epoch_o + 2'd1;
@@ -214,12 +243,28 @@ module opendvs_self_delimiting_packet_path (
                 (bottom_fragment_valid_i &&
                  !fragment_well_formed(1'b1, bottom_fragment_raw_i,
                                        bottom_fragment_length_i,
-                                       bottom_fragment_payload_i))) begin
+                                        bottom_fragment_payload_i))) begin
                 sticky_fault_o <= 1'b1;
+                if (fixture_plant == "malformed_ack") begin
+                    top_ready_q <= top_fragment_valid_i;
+                    bottom_ready_q <= bottom_fragment_valid_i;
+                end
             end
 
             if (bank_valid_q) begin
-                if (stream_abort_i) begin
+                if ((fixture_plant == "bank_overwrite") &&
+                    (top_fragment_valid_i || bottom_fragment_valid_i)) begin
+                    packet_bank_q[0] <= ~packet_bank_q[0];
+                    top_ready_q <= top_fragment_valid_i;
+                    bottom_ready_q <= bottom_fragment_valid_i;
+                end
+                if (stream_abort_i &&
+                    !((fixture_plant == "abort_loses_pending") &&
+                      completion_pending_o && serial_beat_complete_i)) begin
+                    if (fixture_plant == "abort_drops_packet") begin
+                        bank_valid_q <= 1'b0;
+                        packet_bytes_o <= 6'd0;
+                    end
                     beat_index_o <= 4'd0;
                     completion_pending_o <= 1'b0;
                 end else if (completion_pending_o && serial_beat_complete_i) begin
@@ -228,14 +273,27 @@ module opendvs_self_delimiting_packet_path (
                         packet_bytes_o <= 6'd0;
                         beat_index_o <= 4'd0;
                         completion_pending_o <= 1'b0;
-                        sequence_o <= sequence_o + 8'd1;
+                        if (!sync_mode_entry_i) begin
+                            if ((fixture_plant == "sequence_no_wrap") &&
+                                (sequence_o == 8'hff))
+                                sequence_o <= 8'hff;
+                            else
+                                sequence_o <= sequence_o + 8'd1;
+                        end
                     end else begin
                         beat_index_o <= beat_index_o + 4'd1;
                         completion_pending_o <= 1'b0;
                     end
                 end else if (!completion_pending_o &&
-                             (serial_consume_i == 2'b11)) begin
-                    completion_pending_o <= 1'b1;
+                              (serial_consume_i == 2'b11)) begin
+                    if (fixture_plant == "retire_on_consume") begin
+                        bank_valid_q <= 1'b0;
+                        packet_bytes_o <= 6'd0;
+                        beat_index_o <= 4'd0;
+                        sequence_o <= sequence_o + 8'd1;
+                    end else begin
+                        completion_pending_o <= 1'b1;
+                    end
                 end
             end else if (!sticky_fault_o &&
                          (sync_mode_active_i || drain_i) &&
@@ -250,7 +308,8 @@ module opendvs_self_delimiting_packet_path (
                                                bottom_fragment_payload_i))) begin
                 clear_work_body();
                 if (top_fragment_valid_i && bottom_fragment_valid_i) begin
-                    if (prefer_top_q) begin
+                    if (prefer_top_q !=
+                        (fixture_plant == "pair_order_swap")) begin
                         append_fragment(1'b0, top_fragment_raw_i,
                                         top_fragment_length_i,
                                         top_fragment_payload_i);
@@ -265,19 +324,19 @@ module opendvs_self_delimiting_packet_path (
                                         top_fragment_length_i,
                                         top_fragment_payload_i);
                     end
-                    top_fragment_ready_o <= 1'b1;
-                    bottom_fragment_ready_o <= 1'b1;
+                    top_ready_q <= 1'b1;
+                    bottom_ready_q <= 1'b1;
                     prefer_top_q <= !prefer_top_q;
                 end else if (top_fragment_valid_i) begin
                     append_fragment(1'b0, top_fragment_raw_i,
                                     top_fragment_length_i,
                                     top_fragment_payload_i);
-                    top_fragment_ready_o <= 1'b1;
+                    top_ready_q <= 1'b1;
                 end else begin
                     append_fragment(1'b1, bottom_fragment_raw_i,
                                     bottom_fragment_length_i,
                                     bottom_fragment_payload_i);
-                    bottom_fragment_ready_o <= 1'b1;
+                    bottom_ready_q <= 1'b1;
                 end
 
                 work_epoch = sync_mode_entry_i ?
@@ -296,7 +355,8 @@ module opendvs_self_delimiting_packet_path (
                 packet_bank_q[0] <= {4'h2, 2'b01, work_epoch};
                 packet_bank_q[1] <= work_sequence;
                 packet_bank_q[2] <= work_length[7:0];
-                packet_bank_q[3] <= work_crc;
+                packet_bank_q[3] <= (fixture_plant == "crc_corrupt") ?
+                                    (work_crc ^ 8'h01) : work_crc;
                 for (byte_index = 0; byte_index < work_length;
                      byte_index = byte_index + 1)
                     packet_bank_q[4 + byte_index] <= work_body[byte_index];

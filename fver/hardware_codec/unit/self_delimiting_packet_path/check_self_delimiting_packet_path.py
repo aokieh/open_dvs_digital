@@ -154,6 +154,30 @@ INTERFACE_PORTS = (
 PASS_MARKER = "@@OPENDVS_SELF_DELIMITING_PACKET_PATH_CONTRACT_PREFLIGHT_PASS@@"
 FAIL_MARKER = "@@OPENDVS_SELF_DELIMITING_PACKET_PATH_FAIL@@"
 
+REACHABLE_LITERALS = (
+    ("position-p1", "literal_position_p1"),
+    ("position-p2", "literal_position_p2"),
+    ("position-p3", "literal_position_p3"),
+    ("position-p4", "literal_position_p4"),
+    ("raw-p16-direct-mask", "literal_raw_p16"),
+    ("raw-p128-two-record-max", "literal_raw_p128_max"),
+)
+
+PLANTS = (
+    "crc_corrupt",
+    "lane_swap",
+    "raw_half_swap",
+    "pair_order_swap",
+    "early_fragment_ack",
+    "bank_overwrite",
+    "retire_on_consume",
+    "abort_drops_packet",
+    "abort_loses_pending",
+    "sequence_no_wrap",
+    "malformed_ack",
+    "drain_early_quiescent",
+)
+
 
 class ContractError(RuntimeError):
     """The frozen package or one of its authorities changed."""
@@ -373,6 +397,40 @@ def verify_vectors() -> None:
         if freeze.count(anchor) != 1:
             raise ContractError(f"framing_freeze_anchor_differs:{anchor}")
 
+    # The six packet literals reachable by immediate one-/two-fragment closure
+    # are embedded in the RTL testbench.  Extract every literal mechanically and
+    # compare its exact bytes and wire length with the sealed software vectors.
+    bench = (TEST_DIR / "tb_opendvs_self_delimiting_packet_path.sv").read_text(
+        encoding="utf-8"
+    )
+    matches = re.findall(
+        r"assert_literal_vector\(\s*(\d+)\s*,\s*320'h([0-9a-fA-F]+)\s*,\s*"
+        r'"([A-Za-z0-9_]+)"\s*\)',
+        bench,
+        flags=re.DOTALL,
+    )
+    if len(matches) != 6:
+        raise ContractError(f"rtl_literal_extraction_count_differs:{len(matches)}")
+    software_by_id = {str(case["id"]): case for case in literals}
+    extracted_by_check = {
+        check_name: (int(wire_bytes), literal_hex.lower())
+        for wire_bytes, literal_hex, check_name in matches
+    }
+    if len(extracted_by_check) != len(matches):
+        raise ContractError("rtl_literal_check_name_duplicate")
+    for software_id, check_name in REACHABLE_LITERALS:
+        if check_name not in extracted_by_check:
+            raise ContractError(f"rtl_literal_missing:{check_name}")
+        wire_bytes, literal_hex = extracted_by_check[check_name]
+        software_case = software_by_id[software_id]
+        software_hex = str(software_case["packet_hex"]).lower()
+        if wire_bytes != software_case["wire_bytes"]:
+            raise ContractError(f"rtl_literal_wire_length_differs:{software_id}")
+        if len(literal_hex) > wire_bytes * 2:
+            raise ContractError(f"rtl_literal_width_overflow:{software_id}")
+        if literal_hex.zfill(wire_bytes * 2) != software_hex:
+            raise ContractError(f"rtl_literal_bytes_differ:{software_id}")
+
 
 def strip_sv_comments(text: str) -> str:
     text = re.sub(r"/\*.*?\*/", " ", text, flags=re.DOTALL)
@@ -407,38 +465,45 @@ def verify_interface_and_coverage() -> None:
         "opendvs_self_delimiting_packet_path exact_31_port_guard",
         "for (population = 1; population <= 128; population = population + 1)",
         "for (prefix = 0; prefix < 319; prefix = prefix + 1)",
+        "for (serialized_bit = 0; serialized_bit < prefix;",
+        "observe_current_serial_bit(serialized_bit % 32,",
         "literal_case_count != 6",
         "if (population_case_count != 1024)\n",
         "if (abort_prefix_count != 319)\n",
         "320'h26fe24930000ffffffffffffffffffffffffffffffff407fffffffffffffffffffffffffffffffff",
         "look-ahead consume advanced or retired the packet",
         "abort/completion priority retired final pending beat",
-        "malformed sparse fragment did not fail closed",
+        "abort/completion priority advanced a non-final pending beat",
+        "mode entry did not dominate coincident final completion",
+        "run_mutation_contracts();",
+        "malformed fault was not sticky or did not disable admission",
         "fully drained path was not quiescent",
         "@@OPENDVS_SELF_DELIMITING_PACKET_PATH_PASS@@ rtl_literals=6 grammar_literals=7 populations=128 padding_residues=4 abort_prefixes=319 banks=1 max_bytes=40 plants=12",
     )
     for anchor in required_once:
         if bench.count(anchor) != 1:
             raise ContractError(f"testbench_coverage_anchor_differs:{anchor}")
-    plants = (
-        "crc_corrupt",
-        "lane_swap",
-        "raw_half_swap",
-        "pair_order_swap",
-        "early_fragment_ack",
-        "bank_overwrite",
-        "retire_on_consume",
-        "abort_drops_packet",
-        "abort_loses_pending",
-        "sequence_no_wrap",
-        "malformed_ack",
-        "drain_early_quiescent",
+    fixture = fixture_path.read_text(encoding="utf-8")
+    runner = (TEST_DIR / "run_self_delimiting_packet_path.sh").read_text(
+        encoding="utf-8"
     )
-    for plant in plants:
-        if bench.count(f'plant_name == "{plant}"') != 1:
-            raise ContractError(f"plant_mapping_differs:{plant}")
-        if bench.count(f'plant == "{plant}"') != 1:
-            raise ContractError(f"plant_witness_differs:{plant}")
+    if (
+        "run_plant_witness" in bench
+        or "expected_plant_check" in bench
+        or "PLANT=%s" in bench
+        or "fixture_plant" in bench
+    ):
+        raise ContractError("self_certifying_plant_witness_present")
+    plant_block = re.search(
+        r"readonly\s+-a\s+PLANTS=\((.*?)\)", runner, flags=re.DOTALL
+    )
+    if plant_block is None or tuple(
+        re.findall(r"[a-z][a-z0-9_]+", plant_block.group(1))
+    ) != PLANTS:
+        raise ContractError("runner_plant_inventory_differs")
+    for plant in PLANTS:
+        if fixture.count(f'fixture_plant == "{plant}"') != 1:
+            raise ContractError(f"fixture_mutation_mapping_differs:{plant}")
 
 
 def run_preflight() -> int:

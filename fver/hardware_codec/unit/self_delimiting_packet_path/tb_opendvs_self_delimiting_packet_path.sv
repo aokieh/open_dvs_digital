@@ -6,8 +6,6 @@ module tb_opendvs_self_delimiting_packet_path;
         "@@OPENDVS_SELF_DELIMITING_PACKET_PATH_PASS@@ rtl_literals=6 grammar_literals=7 populations=128 padding_residues=4 abort_prefixes=319 banks=1 max_bytes=40 plants=12";
     localparam string FAIL_MARKER =
         "@@OPENDVS_SELF_DELIMITING_PACKET_PATH_FAIL@@";
-    localparam string PLANT_MARKER =
-        "@@OPENDVS_SELF_DELIMITING_PACKET_PATH_PLANT_DETECTED@@";
 
     logic clk_i = 1'b0;
     always #5 clk_i = ~clk_i;
@@ -109,35 +107,8 @@ module tb_opendvs_self_delimiting_packet_path;
     integer population_case_count;
     integer abort_prefix_count;
     integer literal_case_count;
-    string plant;
-
-    function automatic integer expected_plant_check(
-        input string plant_name,
-        input string check_name
-    );
-        begin
-            expected_plant_check =
-                ((plant_name == "crc_corrupt") && (check_name == "crc_corrupt")) ||
-                ((plant_name == "lane_swap") && (check_name == "lane_swap")) ||
-                ((plant_name == "raw_half_swap") && (check_name == "raw_half_swap")) ||
-                ((plant_name == "pair_order_swap") && (check_name == "pair_order_swap")) ||
-                ((plant_name == "early_fragment_ack") && (check_name == "early_fragment_ack")) ||
-                ((plant_name == "bank_overwrite") && (check_name == "bank_overwrite")) ||
-                ((plant_name == "retire_on_consume") && (check_name == "retire_on_consume")) ||
-                ((plant_name == "abort_drops_packet") && (check_name == "abort_drops_packet")) ||
-                ((plant_name == "abort_loses_pending") && (check_name == "abort_loses_pending")) ||
-                ((plant_name == "sequence_no_wrap") && (check_name == "sequence_no_wrap")) ||
-                ((plant_name == "malformed_ack") && (check_name == "malformed_ack")) ||
-                ((plant_name == "drain_early_quiescent") && (check_name == "drain_early_quiescent"));
-        end
-    endfunction
-
     task automatic fail(input string check_name, input string message);
         begin
-            if ((plant != "none") && expected_plant_check(plant, check_name)) begin
-                $display("%s plant=%s check=%s", PLANT_MARKER, plant, check_name);
-                $finish_and_return(10);
-            end
             $display("%s check=%s time=%0t message=%s",
                      FAIL_MARKER, check_name, $time, message);
             $finish_and_return(1);
@@ -464,6 +435,33 @@ module tb_opendvs_self_delimiting_packet_path;
         end
     endtask
 
+    task automatic observe_current_serial_bit(
+        input integer bit_in_beat,
+        input integer serialized_bit,
+        input string check_name
+    );
+        integer lane;
+        integer lane_bit;
+        integer packet_byte;
+        reg observed_bit;
+        reg expected_bit;
+        begin
+            lane = bit_in_beat / 8;
+            lane_bit = bit_in_beat % 8;
+            packet_byte = (beat_index_o * 4) + lane;
+            case (lane)
+                0: observed_bit = serial_data_0_o[7-lane_bit];
+                1: observed_bit = serial_data_0_o[15-lane_bit];
+                2: observed_bit = serial_data_1_o[7-lane_bit];
+                default: observed_bit = serial_data_1_o[15-lane_bit];
+            endcase
+            expected_bit = expected_packet[packet_byte][7-lane_bit];
+            if (observed_bit !== expected_bit)
+                fail(check_name,
+                     $sformatf("serialized prefix bit %0d differed", serialized_bit));
+        end
+    endtask
+
     task automatic consume_current_beat(input string check_name);
         reg [7:0] sequence_before;
         reg [3:0] beat_before;
@@ -749,22 +747,145 @@ module tb_opendvs_self_delimiting_packet_path;
         end
     endtask
 
+    // Every fixture mutation is exercised through the same ordinary lifecycle
+    // assertions used for product qualification.  The testbench never branches
+    // on the requested mutation name.
+    task automatic run_mutation_contracts;
+        reg top_raw;
+        reg bottom_raw;
+        reg [4:0] top_length;
+        reg [4:0] bottom_length;
+        reg [135:0] top_payload;
+        reg [135:0] bottom_payload;
+        reg [127:0] top_mask;
+        reg [127:0] bottom_mask;
+        reg [15:0] held_word;
+        begin
+            // CRC, lane order, early acknowledgement, and consume retirement.
+            hard_reset(); set_epoch(0);
+            make_fragment(0,0,0,1,1,top_raw,top_length,top_payload,top_mask);
+            clear_expected(); append_expected_record(0,0,0,top_mask);
+            finalize_expected(sequence_o,mode_epoch_o);
+            drive_single_fragment(0,top_raw,top_length,top_payload);
+            verify_and_retire("mutation_sparse_packet");
+
+            // Raw right-half/left-half byte order.
+            hard_reset(); set_epoch(0);
+            make_fragment(1,1,9,16,2,bottom_raw,bottom_length,
+                          bottom_payload,bottom_mask);
+            clear_expected(); append_expected_record(1,1,9,bottom_mask);
+            finalize_expected(sequence_o,mode_epoch_o);
+            drive_single_fragment(1,bottom_raw,bottom_length,bottom_payload);
+            verify_and_retire("mutation_raw_packet");
+
+            // Persistent paired arbitration order.
+            hard_reset(); set_epoch(0);
+            make_fragment(0,0,1,2,1,top_raw,top_length,top_payload,top_mask);
+            make_fragment(1,1,2,3,1,bottom_raw,bottom_length,
+                          bottom_payload,bottom_mask);
+            clear_expected(); append_expected_record(0,0,1,top_mask);
+            append_expected_record(1,1,2,bottom_mask);
+            finalize_expected(sequence_o,mode_epoch_o);
+            drive_pair_fragments(top_raw,top_length,top_payload,
+                                 bottom_raw,bottom_length,bottom_payload);
+            verify_and_retire("mutation_pair_packet");
+
+            // An occupied bank must neither change nor acknowledge a late input.
+            hard_reset(); set_epoch(0);
+            clear_expected(); append_expected_record(0,0,1,top_mask);
+            finalize_expected(sequence_o,mode_epoch_o);
+            drive_single_fragment(0,top_raw,top_length,top_payload);
+            held_word = serial_data_0_o;
+            @(negedge clk_i);
+            bottom_fragment_valid_i=1'b1;
+            bottom_fragment_raw_i=bottom_raw;
+            bottom_fragment_length_i=bottom_length;
+            bottom_fragment_payload_i=bottom_payload;
+            @(posedge clk_i); #1;
+            if (bottom_fragment_ready_o || serial_data_0_o !== held_word)
+                fail("bank_overwrite", "occupied bank changed or acknowledged a late fragment");
+            @(negedge clk_i); bottom_fragment_valid_i=1'b0;
+
+            // Abort without completion preserves the bank and rewinds it.
+            hard_reset(); set_epoch(0); commit_max_packet();
+            @(negedge clk_i); stream_abort_i=1'b1;
+            @(posedge clk_i); #1;
+            @(negedge clk_i); stream_abort_i=1'b0;
+            if (!packet_ready_o || beat_index_o !== 0 ||
+                completion_pending_o || sequence_o !== 0)
+                fail("mutation_abort_replay", "abort did not preserve and rewind the packet");
+            check_current_beat("mutation_abort_replay");
+
+            // Abort coincident with a pending non-final completion has priority.
+            hard_reset(); set_epoch(0); commit_max_packet();
+            @(negedge clk_i); serial_consume_i=2'b11;
+            @(posedge clk_i); #1;
+            if (!completion_pending_o || beat_index_o !== 0)
+                fail("abort_pending_nonfinal", "first beat did not become pending");
+            @(negedge clk_i);
+            serial_consume_i=2'b00;
+            stream_abort_i=1'b1;
+            serial_beat_complete_i=1'b1;
+            @(posedge clk_i); #1;
+            @(negedge clk_i);
+            stream_abort_i=1'b0;
+            serial_beat_complete_i=1'b0;
+            if (!packet_ready_o || beat_index_o !== 0 ||
+                completion_pending_o || sequence_o !== 0)
+                fail("abort_pending_nonfinal",
+                     "abort lost priority to pending non-final completion");
+            check_current_beat("abort_pending_nonfinal");
+
+            // Sequence wraps only after final completion.
+            hard_reset(); set_epoch(0); advance_sequence(255);
+            commit_record_case(0,0,0,1,1,"mutation_sequence_wrap");
+            if (sequence_o !== 8'h00)
+                fail("mutation_sequence_wrap", "sequence did not wrap modulo 256");
+
+            // Malformed sparse input is faulted and never acknowledged.
+            hard_reset(); set_epoch(0);
+            make_fragment(0,0,0,2,1,top_raw,top_length,top_payload,top_mask);
+            top_payload[8*(top_length-1)+7] = 1'b0;
+            @(negedge clk_i);
+            top_fragment_valid_i=1'b1;
+            top_fragment_raw_i=top_raw;
+            top_fragment_length_i=top_length;
+            top_fragment_payload_i=top_payload;
+            @(posedge clk_i); #1;
+            if (!sticky_fault_o || top_fragment_ready_o || packet_ready_o)
+                fail("malformed_ack", "malformed sparse fragment did not fail closed");
+            @(negedge clk_i); top_fragment_valid_i=1'b0;
+
+            // Drain remains nonquiescent while its retained bank is occupied.
+            hard_reset(); set_epoch(0); drain_i=1'b1;
+            make_fragment(0,0,0,2,1,top_raw,top_length,top_payload,top_mask);
+            clear_expected(); append_expected_record(0,0,0,top_mask);
+            finalize_expected(sequence_o,mode_epoch_o);
+            drive_single_fragment(0,top_raw,top_length,top_payload);
+            if (quiescent_o)
+                fail("drain_early_quiescent", "drain reported quiescent with bank occupied");
+        end
+    endtask
+
     task automatic run_abort_prefixes;
         integer prefix;
-        integer complete_beats;
+        integer serialized_bit;
         integer beat;
-        integer within_beat;
         begin
             abort_prefix_count = 0;
             for (prefix = 0; prefix < 319; prefix = prefix + 1) begin
                 hard_reset(); set_epoch(0); commit_max_packet();
-                complete_beats = prefix / 32;
-                within_beat = prefix % 32;
-                for (beat = 0; beat < complete_beats; beat = beat + 1) begin
-                    check_current_beat("abort_prefix_before_advance");
-                    consume_current_beat("abort_prefix_before_advance");
+                for (serialized_bit = 0; serialized_bit < prefix;
+                     serialized_bit = serialized_bit + 1) begin
+                    observe_current_serial_bit(serialized_bit % 32,
+                                               serialized_bit,
+                                               "abort_prefix_observation");
+                    if (((serialized_bit + 1) % 32) == 0)
+                        consume_current_beat("abort_prefix_before_advance");
                 end
-                repeat (within_beat) @(posedge clk_i);
+                if (beat_index_o !== (prefix / 32))
+                    fail("abort_prefix_observation",
+                         "serialized prefix did not reach its distinct beat");
                 @(negedge clk_i); stream_abort_i=1'b1;
                 @(posedge clk_i); #1;
                 @(negedge clk_i); stream_abort_i=1'b0;
@@ -776,6 +897,22 @@ module tb_opendvs_self_delimiting_packet_path;
             end
             if (abort_prefix_count != 319)
                 fail("abort_prefix_count", "abort prefix campaign count differed");
+
+            // Abort also wins when a non-final beat is already pending.
+            hard_reset(); set_epoch(0); commit_max_packet();
+            @(negedge clk_i); serial_consume_i=2'b11;
+            @(posedge clk_i); #1;
+            if (!completion_pending_o || beat_index_o !== 0)
+                fail("abort_pending_nonfinal", "non-final consume did not become pending");
+            @(negedge clk_i); serial_consume_i=2'b00;
+            stream_abort_i=1'b1; serial_beat_complete_i=1'b1;
+            @(posedge clk_i); #1;
+            @(negedge clk_i); stream_abort_i=1'b0; serial_beat_complete_i=1'b0;
+            if (!packet_ready_o || beat_index_o !== 0 || sequence_o !== 0 ||
+                completion_pending_o)
+                fail("abort_pending_nonfinal",
+                     "abort/completion priority advanced a non-final pending beat");
+            check_current_beat("abort_pending_nonfinal");
 
             // Abort after final look-ahead consume has priority over completion.
             hard_reset(); set_epoch(0); commit_max_packet();
@@ -821,6 +958,33 @@ module tb_opendvs_self_delimiting_packet_path;
                 if (sequence_o !== 0)
                     fail("entry_sequence_reset", "entry did not reset sequence");
             end
+
+            // Synchronous-mode entry owns sequence zero when it coincides with
+            // completion of the preceding epoch's final serialized bit.
+            hard_reset(); set_epoch(0);
+            commit_record_case(0,0,0,1,1,"entry_completion_seed");
+            make_fragment(0,0,0,1,1,raw,length,payload,mask);
+            clear_expected(); append_expected_record(0,0,0,mask);
+            finalize_expected(sequence_o,mode_epoch_o);
+            drive_single_fragment(0,raw,length,payload);
+            consume_current_beat("entry_completion_collision_setup");
+            check_current_beat("entry_completion_collision_setup");
+            @(negedge clk_i); serial_consume_i=2'b11;
+            @(posedge clk_i); #1;
+            if (!completion_pending_o || beat_index_o !== 1)
+                fail("entry_completion_collision", "final beat did not become pending");
+            @(negedge clk_i);
+            serial_consume_i=2'b00;
+            serial_beat_complete_i=1'b1;
+            sync_mode_entry_i=1'b1;
+            @(posedge clk_i); #1;
+            if (packet_ready_o || completion_pending_o ||
+                sequence_o !== 8'h00 || mode_epoch_o !== 2'd1)
+                fail("entry_completion_collision",
+                     "mode entry did not dominate coincident final completion");
+            @(negedge clk_i);
+            serial_beat_complete_i=1'b0;
+            sync_mode_entry_i=1'b0;
 
             // Drain: disable new core admission, still commit an already-held
             // fragment, and wait for bank, pending, encoder, and serial boundary.
@@ -894,57 +1058,12 @@ module tb_opendvs_self_delimiting_packet_path;
         end
     endtask
 
-    task automatic run_plant_witness;
-        reg raw;
-        reg [4:0] length;
-        reg [135:0] payload;
-        reg [127:0] mask;
-        begin
-            hard_reset(); set_epoch(0);
-            make_fragment(0,0,0,1,1,raw,length,payload,mask);
-            clear_expected(); append_expected_record(0,0,0,mask);
-            finalize_expected(sequence_o,mode_epoch_o);
-            drive_single_fragment(0,raw,length,payload);
-            if (plant == "crc_corrupt")
-                fail("crc_corrupt", "planted CRC byte corruption detected");
-            else if (plant == "lane_swap")
-                fail("lane_swap", "planted serializer lane swap detected");
-            else if (plant == "raw_half_swap")
-                fail("raw_half_swap", "planted raw half order detected");
-            else if (plant == "pair_order_swap")
-                fail("pair_order_swap", "planted paired arbitration order detected");
-            else if (plant == "early_fragment_ack")
-                fail("early_fragment_ack", "planted precommit ready detected");
-            else if (plant == "bank_overwrite")
-                fail("bank_overwrite", "planted one-bank overwrite detected");
-            else if (plant == "retire_on_consume")
-                fail("retire_on_consume", "planted consume retirement detected");
-            else if (plant == "abort_drops_packet")
-                fail("abort_drops_packet", "planted abort packet loss detected");
-            else if (plant == "abort_loses_pending")
-                fail("abort_loses_pending", "planted abort/completion priority detected");
-            else if (plant == "sequence_no_wrap")
-                fail("sequence_no_wrap", "planted sequence wrap defect detected");
-            else if (plant == "malformed_ack")
-                fail("malformed_ack", "planted malformed acknowledgement detected");
-            else if (plant == "drain_early_quiescent")
-                fail("drain_early_quiescent", "planted drain quiescence defect detected");
-            else
-                fail("unknown_plant", "unknown plant name");
-        end
-    endtask
-
     initial begin
-        if (!$value$plusargs("PLANT=%s", plant))
-            plant = "none";
         literal_case_count = 0;
         population_case_count = 0;
         abort_prefix_count = 0;
         clear_inputs();
-        if (plant != "none") begin
-            run_plant_witness();
-            fail("plant_escape", "named plant escaped its witness");
-        end
+        run_mutation_contracts();
         run_literal_cases();
         run_population_matrix();
         run_order_backpressure_and_late_fragment();

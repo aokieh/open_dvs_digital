@@ -1,9 +1,10 @@
 # Standalone self-delimiting packet-path acceptance
 
-This directory is the sealed RED-first package for the uninstantiated
-`opendvs_self_delimiting_packet_path` product module. It does not contain product
-RTL and does not modify the raw serializer, the ownership shell, `final_top3`,
-the serial peripheral, or the qualified product encoder core.
+This directory is the resealed RED-first acceptance package for the
+uninstantiated `opendvs_self_delimiting_packet_path` product module. Product RTL
+remains separate under `source/design`; this package does not modify the raw
+serializer, the ownership shell, `final_top3`, the serial peripheral, or the
+qualified product encoder core.
 
 ## Exact interface
 
@@ -35,12 +36,17 @@ rows zero and 63, four padding residues, exact 17-to-18-byte raw conversion,
 the 40-byte maximum, atomic acknowledgement, persistent paired round-robin
 order, late-fragment exclusion, one-bank backpressure, serializer lane and bit
 order, consume-versus-completion retirement, all 319 pre-final abort prefixes,
-abort after final consume, sequence and epoch wrap, drain boundaries, malformed
-fail-closed behavior, and reset from every represented lifecycle state.
+abort coincident with pending non-final and final completion, mode entry
+coincident with final completion, sequence and epoch wrap, drain boundaries,
+malformed fail-closed behavior, and reset from every represented lifecycle
+state. Every abort prefix observes each actual serializer output bit before the
+abort and immutable replay check.
 
 The executable fixture preflight runs the unplanted suite and twelve named
-observation-mutation controls. A fixture pass proves only that the apparatus is
-executable; it is not product evidence.
+fixture behavior mutations. Each mutation changes a real observation or state
+transition and must be caught by an ordinary lifecycle assertion; a name never
+directly invokes a testbench failure or pass. A fixture pass proves only that
+the apparatus is executable; it is not product evidence.
 
 ## Source seals
 
@@ -53,9 +59,11 @@ the legacy width/depth macro definitions.
 `test-source.sha256` seals the exact file list and all acceptance files except
 itself. Every command first verifies both seals, regular-file identity, package
 inventory, whitespace, the exact interface, and independent reconstruction of
-all frozen literal bytes and CRC values.
+all frozen literal bytes and CRC values. The preflight also extracts all six
+reachable SystemVerilog literal vectors and compares their exact lengths and
+bytes with the sealed software vector source.
 
-## Commands and expected RED state
+## Commands and expected results
 
 Run from the repository root:
 
@@ -64,6 +72,8 @@ python3 -I fver/hardware_codec/unit/self_delimiting_packet_path/check_self_delim
 bash fver/hardware_codec/unit/self_delimiting_packet_path/run_self_delimiting_packet_path.sh --fixture-preflight
 bash fver/hardware_codec/unit/self_delimiting_packet_path/run_self_delimiting_packet_path.sh --expect-red
 bash fver/hardware_codec/unit/self_delimiting_packet_path/run_self_delimiting_packet_path.sh --expect-green
+bash fver/hardware_codec/unit/self_delimiting_packet_path/run_self_delimiting_packet_path_synthesis.sh --preflight
+bash fver/hardware_codec/unit/self_delimiting_packet_path/run_self_delimiting_packet_path_synthesis.sh --run
 ```
 
 The first three commands must emit exactly one corresponding marker:
@@ -74,7 +84,7 @@ The first three commands must emit exactly one corresponding marker:
 @@OPENDVS_SELF_DELIMITING_PACKET_PATH_RED_CONFIRMED@@ missing_module=opendvs_self_delimiting_packet_path
 ```
 
-Until product RTL exists, `--expect-green` must return nonzero and end with:
+In a product-free tree, `--expect-green` must return nonzero and end with:
 
 ```text
 @@OPENDVS_SELF_DELIMITING_PACKET_PATH_FAIL@@ check=missing_product_module
@@ -83,12 +93,8 @@ Until product RTL exists, `--expect-green` must return nonzero and end with:
 Wrong paths, seal drift, syntax failures, fixture failures, timeouts, or any
 other unresolved module invalidate RED.
 
-The future synthesis commands are:
-
-```sh
-bash fver/hardware_codec/unit/self_delimiting_packet_path/run_self_delimiting_packet_path_synthesis.sh --preflight
-bash fver/hardware_codec/unit/self_delimiting_packet_path/run_self_delimiting_packet_path_synthesis.sh --run
-```
-
-They are intentionally not run while product RTL is absent. The synthesis gate
-requires one structural 40-byte bank, no unresolved hierarchy, and no latches.
+With product RTL present, `--expect-green` emits the frozen PASS marker. The
+synthesis gate rejects environment source/tool injection, uses fixed absolute
+tool paths and a hash-pinned Yosys, and inspects generated JSON structure. It
+requires exactly one flip-flop-retained 320-bit `packet_bank_q`, no second
+retained 320-bit bank, no unresolved hierarchy, and no latches.
